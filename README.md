@@ -1,6 +1,6 @@
-# Secure App — CS 6417 Software Security Project
+# Secure Login Page
 
-A security-focused web application built for the Graduate Software Security course (CS 4417/6417), Winter 2026.
+A security-focused web application.
 
 **Stack:** Node.js · Express · EJS · PostgreSQL · GitHub Actions
 
