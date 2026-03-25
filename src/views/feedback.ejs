@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feedback — Secure App</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+    nav {
+      background: #1a1a2e;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; }
+    .nav-user { font-size: 0.85rem; color: #a0aec0; }
+    .nav-user span { color: #7c3aed; font-weight: 600; }
+    .logout-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .logout-btn:hover { background: #dc2626; }
+    .container {
+      max-width: 780px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      display: grid;
+      gap: 1.5rem;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .card h2 { font-size: 1.2rem; margin-bottom: 1.2rem; color: #1a1a2e; }
+    .form-group { margin-bottom: 1.2rem; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: #444; }
+    textarea, input[type="text"], input[type="password"], input[type="file"] {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    textarea:focus, input:focus { border-color: #4f46e5; }
+    textarea { resize: vertical; min-height: 120px; }
+    .btn {
+      padding: 0.65rem 1.5rem;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #4338ca; }
+    .btn-secondary {
+      background: #6b7280;
+    }
+    .btn-secondary:hover { background: #4b5563; }
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.2rem;
+      font-size: 0.9rem;
+    }
+    .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .file-info {
+      font-size: 0.78rem;
+      color: #6b7280;
+      margin-top: 0.4rem;
+    }
+    .file-error { color: #dc2626; }
+    .char-count {
+      font-size: 0.78rem;
+      color: #9ca3af;
+      text-align: right;
+      margin-top: 0.25rem;
+    }
+    .role-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: <%= user.role === 'admin' ? '#fef3c7' : '#ede9fe' %>;
+      color: <%= user.role === 'admin' ? '#92400e' : '#5b21b6' %>;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .strength-meter { margin-top: 0.5rem; height: 5px; border-radius: 3px; background: #e5e7eb; }
+    .strength-bar { height: 100%; border-radius: 3px; width: 0%; transition: width 0.3s, background 0.3s; }
+    .strength-label { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
+    details { cursor: pointer; }
+    details summary { font-weight: 600; font-size: 0.95rem; color: #4f46e5; }
+    details[open] summary { margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-brand">🔐 Secure App</div>
+    <div style="display:flex; align-items:center; gap:1rem;">
+      <div class="nav-user">
+        Signed in as <span><%= user.username %></span>
+        &nbsp;<span class="role-badge"><%= user.role %></span>
+      </div>
+      <!-- POST logout — using a form prevents CSRF via GET link -->
+      <form method="POST" action="/logout" style="margin:0;">
+        <button type="submit" class="logout-btn">Sign Out</button>
+      </form>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- ── Feedback Form ── -->
+    <div class="card">
+      <h2>📝 Submit Feedback</h2>
+
+      <% if (error) { %>
+        <div class="alert alert-error" role="alert"><%= error %></div>
+      <% } %>
+      <% if (success) { %>
+        <div class="alert alert-success" role="alert"><%= success %></div>
+      <% } %>
+
+      <!--
+        enctype="multipart/form-data" required for file upload.
+        Server validates: file size (multer), MIME type (declared),
+        and hex signature (file-type library).
+      -->
+      <form method="POST" action="/feedback" enctype="multipart/form-data" novalidate>
+
+        <div class="form-group">
+          <label for="message">Your Message</label>
+          <textarea
+            id="message"
+            name="message"
+            maxlength="2000"
+            required
+            placeholder="Enter your feedback here..."
+          ></textarea>
+          <div class="char-count"><span id="charCount">0</span> / 2000</div>
+        </div>
+
+        <div class="form-group">
+          <label for="attachment">Attachment (optional)</label>
+          <input
+            type="file"
+            id="attachment"
+            name="attachment"
+            accept=".jpg,.jpeg,.png,.pdf,.txt"
+          />
+          <p class="file-info">
+            Allowed: JPEG, PNG, PDF, TXT · Max size: <%= process.env.MAX_FILE_SIZE_MB || 5 %>MB<br/>
+            Files are scanned and renamed server-side. Original filename is not used in storage.
+          </p>
+          <p class="file-info file-error" id="fileSizeError" style="display:none;">
+            File exceeds size limit and will be rejected.
+          </p>
+        </div>
+
+        <button type="submit" class="btn">Submit Feedback</button>
+      </form>
+    </div>
+
+    <!-- ── Change Password ── -->
+    <div class="card">
+      <details>
+        <summary>🔑 Change Password</summary>
+
+        <form method="POST" action="/change-password" autocomplete="off" novalidate>
+
+          <div class="form-group">
+            <label for="currentPassword">Current Password</label>
+            <input type="password" id="currentPassword" name="currentPassword" required maxlength="128" autocomplete="current-password" />
+          </div>
+
+          <div class="form-group">
+            <label for="newPassword">New Password</label>
+            <input type="password" id="newPassword" name="password" required maxlength="128" autocomplete="new-password" />
+            <div class="strength-meter"><div class="strength-bar" id="strengthBar"></div></div>
+            <p class="strength-label" id="strengthLabel">Enter new password</p>
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">Confirm New Password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" required maxlength="128" autocomplete="new-password" />
+          </div>
+
+          <button type="submit" class="btn btn-secondary">Update Password</button>
+        </form>
+      </details>
+    </div>
+
+  </div>
+
+  <script src="/zxcvbn.js"></script>
+  <script>
+    // ── Character counter ────────────────────────────────────────────────────
+    const msg = document.getElementById('message');
+    const counter = document.getElementById('charCount');
+    msg.addEventListener('input', () => { counter.textContent = msg.value.length; });
+
+    // ── Client-side file size check (UX only — server enforces the real limit) ──
+    const fileInput = document.getElementById('attachment');
+    const fileSizeError = document.getElementById('fileSizeError');
+    const MAX_BYTES = (<%= process.env.MAX_FILE_SIZE_MB || 5 %>) * 1024 * 1024;
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file && file.size > MAX_BYTES) {
+        fileSizeError.style.display = 'block';
+        fileInput.value = '';
+      } else {
+        fileSizeError.style.display = 'none';
+      }
+    });
+
+    // ── zxcvbn password strength (change password form) ──────────────────────
+    const LABELS = ['Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
+    const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#16a34a'];
+    const newPw = document.getElementById('newPassword');
+    const bar = document.getElementById('strengthBar');
+    const lbl = document.getElementById('strengthLabel');
+
+    newPw.addEventListener('input', () => {
+      if (!newPw.value) { bar.style.width = '0%'; lbl.textContent = 'Enter new password'; return; }
+      const r = zxcvbn(newPw.value);
+      bar.style.width = `${(r.score + 1) * 20}%`;
+      bar.style.background = COLORS[r.score];
+      lbl.textContent = `Strength: ${LABELS[r.score]}`;
+    });
+  </script>
+</body>
+</html>
