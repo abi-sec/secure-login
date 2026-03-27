@@ -157,7 +157,7 @@ jobs:
       - name: Run database migrations
         run: |
           PGPASSWORD=testpassword psql \
-            -h localhost -U testuser -d secureapp_test \
+            -h localhost -U testuser -d loginapp \
             -f migrations/001_create_tables.sql
 
       - name: Start application in background
