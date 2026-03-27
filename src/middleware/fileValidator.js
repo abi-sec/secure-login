@@ -73,7 +73,6 @@ async function validateFileSignature(req, res, next) {
   if (!req.file) return next();
 
   const fs = require('fs');
-  const os = require('os');
 
   try {
     // Dynamic import — file-type is ESM only
@@ -95,8 +94,10 @@ async function validateFileSignature(req, res, next) {
     }
 
     // Rename .tmp to correct extension
+    // eslint-disable-next-line security/detect-object-injection
     const ext = ALLOWED_TYPES[declaredMime]?.ext || '.bin';
     const finalPath = req.file.path.replace('.tmp', ext);
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     fs.renameSync(req.file.path, finalPath);
 
     // Extract UUID from filename (strip .tmp)
@@ -117,7 +118,12 @@ async function validateFileSignature(req, res, next) {
 
   } catch (err) {
     // Delete the rejected file immediately — don't leave attacker files on disk
-    try { require('fs').unlinkSync(req.file.path); } catch (_) {}
+    try {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+          require('fs').unlinkSync(req.file.path);
+          } catch {
+  // intentionally ignored — best-effort cleanup
+    }
 
     logger.security('UPLOAD_REJECTED_SIGNATURE', {
       userId: req.user?.id,

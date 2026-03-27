@@ -1,3 +1,5 @@
+'use strict';
+
 process.on('uncaughtException', (err) => {
   console.error('UNCAUGHT:', err.message, err.stack);
   process.exit(1);
@@ -8,7 +10,6 @@ process.on('unhandledRejection', (reason) => {
   process.exit(1);
 });
 
-'use strict';
 
 require('dotenv').config();
 
@@ -26,6 +27,7 @@ const { generalLimiter } = require('./middleware/rateLimiter');
 const uploadDir = process.env.UPLOAD_DIR || 'uploads';
 const logsDir = 'logs';
 [uploadDir, logsDir].forEach(dir => {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 

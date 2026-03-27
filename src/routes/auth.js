@@ -65,10 +65,11 @@ router.post('/login',
   // On failure, passport calls failureRedirect above.
   // On success, it redirects to /feedback.
   // This handler is only called on unexpected errors:
-  (err, req, res, next) => {
-    logger.error({ event: 'LOGIN_MIDDLEWARE_ERROR', error: err.message });
-    res.status(500).render('login', { error: 'An error occurred. Please try again.', username: '' });
-  }
+  // eslint-disable-next-line no-unused-vars
+  (err, req, res, _next) => {
+  logger.error({ event: 'LOGIN_MIDDLEWARE_ERROR', error: err.message });
+  res.status(500).render('login', { error: 'An error occurred. Please try again.', username: '' });
+}
 );
 
 // ─── GET /register ────────────────────────────────────────────────────────────
