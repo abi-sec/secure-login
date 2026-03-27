@@ -148,6 +148,12 @@ jobs:
       - name: Create upload and logs directories
         run: mkdir -p uploads logs
 
+      # FIX — Permission error: ZAP Docker container runs as non-root (uid 1000).
+      # The GitHub Actions workspace is owned by root, so ZAP can't write zap.yaml.
+      # chmod 777 on the workspace gives ZAP the write access it needs.
+      - name: Fix workspace permissions for ZAP Docker container
+        run: chmod -R 777 ${{ github.workspace }}
+
       - name: Run database migrations
         run: |
           PGPASSWORD=testpassword psql \
@@ -169,23 +175,28 @@ jobs:
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: 'http://localhost:3000'
-          # Baseline scan: passive scan + AJAX spider
-          # Does NOT perform active attacks — safe for CI
-          # fail_action: warn = pipeline warns but doesn't fail on baseline
-          # Change to 'fail' once you've remediated all baseline findings
-          fail_action: warn
+          # fail_action MUST be 'true' or 'false' in v0.12.0+
+          # 'false' = pipeline records findings but does not fail the job.
+          # Switch to 'true' once you have remediated all baseline findings
+          # and want the gate to hard-fail on any ZAP alert.
+          fail_action: 'false'
           allow_issue_writing: false
           cmd_options: '-a'  # Enable AJAX spider for EJS-rendered pages
+          # artifact_name intentionally not set — avoids the internal
+          # artifact upload conflict that caused the 400 Bad Request error.
 
-      - name: Upload ZAP report
+      # Manually upload the three report files ZAP writes to the workspace.
+      # These are the deliverables for the project report.
+      - name: Upload ZAP reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: zap-dast-report
+          name: zap-dast-report-${{ github.run_id }}
           path: |
-            report_html.html
-            report_json.json
-            report_md.md
+            ${{ github.workspace }}/report_html.html
+            ${{ github.workspace }}/report_json.json
+            ${{ github.workspace }}/report_md.md
+          if-no-files-found: warn
 
       - name: Stop application
         if: always()
