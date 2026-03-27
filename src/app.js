@@ -1,3 +1,13 @@
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT:', err.message, err.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION:', reason);
+  process.exit(1);
+});
+
 'use strict';
 
 require('dotenv').config();
@@ -126,10 +136,8 @@ app.use((err, req, res, next) => {
   await connectDB();
 
   // Sync models (use migrations in production)
-  if (process.env.NODE_ENV !== 'production') {
-    await sequelize.sync({ alter: true });
-    logger.info({ event: 'DB_SYNCED' });
-  }
+  await sequelize.authenticate();
+  logger.info({ event: 'DB_SYNCED' });
 
   app.listen(PORT, () => {
     logger.info({ event: 'APP_STARTED', port: PORT, env: process.env.NODE_ENV });

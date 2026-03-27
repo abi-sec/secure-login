@@ -10,6 +10,12 @@
     "audit-check": "npm audit --audit-level=high",
     "migrate": "node migrations/run.js"
   },
+  "overrides": {
+    "tar": "^7.5.11",
+    "@mapbox/node-pre-gyp": {
+      "tar": "^7.5.11"
+    }
+  },
   "dependencies": {
     "argon2": "^0.31.2",
     "connect-pg-simple": "^9.0.1",
@@ -19,7 +25,7 @@
     "express-rate-limit": "^7.3.1",
     "express-session": "^1.18.0",
     "express-validator": "^7.1.0",
-    "file-type": "^19.0.0",
+    "file-type": "^22.0.0",
     "helmet": "^7.1.0",
     "multer": "^1.4.5-lts.1",
     "passport": "^0.7.0",
