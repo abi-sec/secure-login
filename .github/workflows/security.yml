@@ -134,7 +134,7 @@ jobs:
           cat > .env << EOF
           DB_HOST=localhost
           DB_PORT=5432
-          DB_NAME=secureapp_test
+          DB_NAME=loginapp
           DB_USER=testuser
           DB_PASSWORD=testpassword
           SESSION_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
