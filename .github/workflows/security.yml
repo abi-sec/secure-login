@@ -182,8 +182,7 @@ jobs:
           fail_action: 'false'
           allow_issue_writing: false
           cmd_options: '-a'  # Enable AJAX spider for EJS-rendered pages
-          # artifact_name intentionally not set — avoids the internal
-          # artifact upload conflict that caused the 400 Bad Request error.
+          artifact_name: 'zap-report-${{ github.run_id }}'
 
       # Manually upload the three report files ZAP writes to the workspace.
       # These are the deliverables for the project report.
