@@ -10,7 +10,6 @@ process.on('unhandledRejection', (reason) => {
   process.exit(1);
 });
 
-
 require('dotenv').config();
 
 const express = require('express');
@@ -23,6 +22,12 @@ const logger = require('./utils/logger');
 const { connectDB, sequelize } = require('./config/database');
 const { generalLimiter } = require('./middleware/rateLimiter');
 
+// ─── Model associations ───────────────────────────────────────────────────────
+const User = require('./models/User');
+const Feedback = require('./models/Feedback');
+User.hasMany(Feedback, { foreignKey: 'userId' });
+Feedback.belongsTo(User, { foreignKey: 'userId' });
+
 // ─── Ensure required directories exist ───────────────────────────────────────
 const uploadDir = process.env.UPLOAD_DIR || 'uploads';
 const logsDir = 'logs';
@@ -34,7 +39,7 @@ const logsDir = 'logs';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── Trust proxy (needed if behind nginx/load balancer) ──────────────────────
+// ─── Trust proxy ──────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
@@ -44,31 +49,22 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // ─── Helmet — secure HTTP headers ────────────────────────────────────────────
-// Helmet sets: Content-Security-Policy, X-Frame-Options (clickjacking),
-// X-Content-Type-Options (MIME sniffing), Referrer-Policy, etc.
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: [
-        "'self'",
-        // Allow zxcvbn loaded locally — no CDN (minimizes external script risk)
-        "'sha256-PLACEHOLDER_REPLACE_WITH_ACTUAL_HASH'",
-      ],
-      styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for simplicity
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:'],
       connectSrc: ["'self'"],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
-      frameAncestors: ["'none'"],  // X-Frame-Options equivalent in CSP
+      frameAncestors: ["'none'"],
       upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
     },
   },
-  // Prevent browsers from MIME-sniffing the response content type
   noSniff: true,
-  // Hide X-Powered-By: Express header (don't advertise tech stack)
   hidePoweredBy: true,
-  // HTTP Strict Transport Security (HTTPS only) — production only
   hsts: process.env.NODE_ENV === 'production'
     ? { maxAge: 31536000, includeSubDomains: true }
     : false,
@@ -78,52 +74,46 @@ app.use(helmet({
 app.use(generalLimiter);
 
 // ─── Body parsers ─────────────────────────────────────────────────────────────
-// Limit body size to prevent large payload DoS
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 app.use(express.json({ limit: '10kb' }));
 
-// ─── Session configuration ────────────────────────────────────────────────────
-// express-session with server-side session storage.
-// httpOnly: true — JavaScript cannot access this cookie (XSS protection)
-// sameSite: 'strict' — cookie not sent on cross-site requests (CSRF protection)
-// secure: true in production — cookie only sent over HTTPS
+// ─── Session ──────────────────────────────────────────────────────────────────
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  name: 'sid', // Rename from 'connect.sid' to avoid fingerprinting
+  name: 'sid',
   cookie: {
     httpOnly: true,
     sameSite: 'strict',
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 2 * 60 * 60 * 1000, // 2-hour session lifetime
+    maxAge: 2 * 60 * 60 * 1000,
   },
 }));
 
-// ─── Passport authentication ──────────────────────────────────────────────────
+// ─── Passport ─────────────────────────────────────────────────────────────────
 app.use(passport.initialize());
 app.use(passport.session());
 
 // ─── Static files ─────────────────────────────────────────────────────────────
-// Serve static assets (CSS, client-side JS)
 app.use(express.static(path.join(__dirname, '../public')));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/', require('./routes/auth'));
 app.use('/', require('./routes/feedback'));
+app.use('/', require('./routes/admin'));
 
 // Root redirect
 app.get('/', (req, res) => {
   res.redirect(req.isAuthenticated() ? '/feedback' : '/login');
 });
 
-// ─── 404 handler ─────────────────────────────────────────────────────────────
+// ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).render('error', { message: 'Page not found.', status: 404 });
 });
 
 // ─── Global error handler ─────────────────────────────────────────────────────
-// Never expose stack traces to the client in production
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   logger.error({ event: 'UNHANDLED_ERROR', error: err.message, stack: err.stack });
@@ -136,8 +126,6 @@ app.use((err, req, res, next) => {
 // ─── Startup ──────────────────────────────────────────────────────────────────
 (async () => {
   await connectDB();
-
-  // Sync models (use migrations in production)
   await sequelize.authenticate();
   logger.info({ event: 'DB_SYNCED' });
 
@@ -147,4 +135,4 @@ app.use((err, req, res, next) => {
   });
 })();
 
-module.exports = app; // exported for ZAP testing
+module.exports = app;

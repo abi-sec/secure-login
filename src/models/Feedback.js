@@ -58,4 +58,8 @@ const Feedback = sequelize.define('Feedback', {
   underscored: true,
 });
 
+Feedback.associate = (models) => {
+  Feedback.belongsTo(models.User, { foreignKey: 'userId' });
+};
+
 module.exports = Feedback;

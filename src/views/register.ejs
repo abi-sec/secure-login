@@ -59,7 +59,6 @@
       font-size: 0.9rem;
     }
     .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    /* zxcvbn strength meter */
     .strength-meter {
       margin-top: 0.5rem;
       height: 6px;
@@ -73,18 +72,9 @@
       border-radius: 3px;
       transition: width 0.3s, background 0.3s;
     }
-    .strength-label {
-      font-size: 0.78rem;
-      margin-top: 0.3rem;
-      color: #666;
-    }
+    .strength-label { font-size: 0.78rem; margin-top: 0.3rem; color: #666; }
     .back-link { display: block; text-align: center; margin-top: 1.2rem; color: #4f46e5; font-size: 0.9rem; }
-    .requirements {
-      font-size: 0.78rem;
-      color: #666;
-      margin-top: 0.4rem;
-      line-height: 1.5;
-    }
+    .requirements { font-size: 0.78rem; color: #666; margin-top: 0.4rem; line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -138,7 +128,6 @@
           maxlength="128"
           autocomplete="new-password"
         />
-        <!-- zxcvbn strength meter — gives real randomness score, not just rule checks -->
         <div class="strength-meter" aria-hidden="true">
           <div class="strength-bar" id="strengthBar"></div>
         </div>
@@ -164,37 +153,7 @@
     <a href="/login" class="back-link">Already have an account? Sign in</a>
   </div>
 
-  <!-- zxcvbn: password strength estimation -->
-  <!-- Loaded from node_modules, served as static file — no CDN dependency -->
   <script src="/zxcvbn.js"></script>
-  <script>
-    // Only runs client-side for UX feedback
-    // Server-side validation is the authoritative check
-    const pwInput = document.getElementById('password');
-    const strengthBar = document.getElementById('strengthBar');
-    const strengthLabel = document.getElementById('strengthLabel');
-
-    const STRENGTH_LABELS = ['Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
-    const STRENGTH_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#16a34a'];
-    const STRENGTH_WIDTHS = ['20%', '40%', '60%', '80%', '100%'];
-
-    pwInput.addEventListener('input', () => {
-      const val = pwInput.value;
-      if (!val) {
-        strengthBar.style.width = '0%';
-        strengthLabel.textContent = 'Enter a password to see its strength';
-        return;
-      }
-      // zxcvbn returns score 0–4 based on entropy, not just rule compliance
-      const result = zxcvbn(val);
-      const score = result.score;
-      strengthBar.style.width = STRENGTH_WIDTHS[score];
-      strengthBar.style.background = STRENGTH_COLORS[score];
-      strengthLabel.textContent = `Strength: ${STRENGTH_LABELS[score]}`;
-      if (result.feedback.warning) {
-        strengthLabel.textContent += ` — ${result.feedback.warning}`;
-      }
-    });
-  </script>
+  <script src="/main.js"></script>
 </body>
 </html>

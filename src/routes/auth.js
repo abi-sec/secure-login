@@ -10,11 +10,6 @@ const { requireAuth } = require('../middleware/rbac');
 
 const router = express.Router();
 
-// ─── Password policy ──────────────────────────────────────────────────────────
-// zxcvbn is used client-side for real-time feedback.
-// Server-side we enforce a minimum strength score of 3 (out of 4).
-// We also enforce structural requirements as a baseline.
-
 const PASSWORD_VALIDATORS = [
   body('password')
     .isLength({ min: 10 })
@@ -45,7 +40,7 @@ router.post('/login',
       .isLength({ min: 3, max: 64 }),
     body('password')
       .notEmpty().withMessage('Password is required.')
-      .isLength({ max: 128 }), // Prevent bcrypt/argon2 DoS via huge input
+      .isLength({ max: 128 }),
   ],
   (req, res, next) => {
     const errors = validationResult(req);
@@ -62,14 +57,11 @@ router.post('/login',
     failureRedirect: '/login',
     failureFlash: false,
   }),
-  // On failure, passport calls failureRedirect above.
-  // On success, it redirects to /feedback.
-  // This handler is only called on unexpected errors:
   // eslint-disable-next-line no-unused-vars
   (err, req, res, _next) => {
-  logger.error({ event: 'LOGIN_MIDDLEWARE_ERROR', error: err.message });
-  res.status(500).render('login', { error: 'An error occurred. Please try again.', username: '' });
-}
+    logger.error({ event: 'LOGIN_MIDDLEWARE_ERROR', error: err.message });
+    res.status(500).render('login', { error: 'An error occurred. Please try again.', username: '' });
+  }
 );
 
 // ─── GET /register ────────────────────────────────────────────────────────────
@@ -107,7 +99,6 @@ router.post('/register',
     try {
       const { username, email, password } = req.body;
 
-      // Check for duplicate username — same error message prevents enumeration
       const existing = await User.findOne({ where: { username } });
       if (existing) {
         return res.status(400).render('register', {
@@ -149,8 +140,10 @@ router.post('/change-password',
     if (!errors.isEmpty()) {
       return res.status(400).render('feedback', {
         user: req.user,
-        error: errors.array()[0].msg,
+        error: null,
         success: null,
+        passwordError: errors.array()[0].msg,
+        passwordSuccess: null,
       });
     }
 
@@ -162,8 +155,10 @@ router.post('/change-password',
         logger.security('PASSWORD_CHANGE_WRONG_CURRENT', { userId: req.user.id });
         return res.status(400).render('feedback', {
           user: req.user,
-          error: 'Current password is incorrect.',
+          error: null,
           success: null,
+          passwordError: 'Current password is incorrect.',
+          passwordSuccess: null,
         });
       }
 
@@ -174,15 +169,19 @@ router.post('/change-password',
       res.render('feedback', {
         user: req.user,
         error: null,
-        success: 'Password changed successfully.',
+        success: null,
+        passwordError: null,
+        passwordSuccess: 'Password changed successfully.',
       });
 
     } catch (err) {
       logger.error({ event: 'PASSWORD_CHANGE_ERROR', error: err.message });
       res.status(500).render('feedback', {
         user: req.user,
-        error: 'An error occurred. Please try again.',
+        error: null,
         success: null,
+        passwordError: 'An error occurred. Please try again.',
+        passwordSuccess: null,
       });
     }
   }

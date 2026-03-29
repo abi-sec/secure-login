@@ -12,7 +12,13 @@ const router = express.Router();
 
 // ─── GET /feedback ────────────────────────────────────────────────────────────
 router.get('/feedback', requireAuth, (req, res) => {
-  res.render('feedback', { user: req.user, error: null, success: null });
+  res.render('feedback', {
+    user: req.user,
+    error: null,
+    success: null,
+    passwordError: null,
+    passwordSuccess: null,
+  });
 });
 
 // ─── POST /feedback ───────────────────────────────────────────────────────────
@@ -20,12 +26,9 @@ router.post('/feedback',
   requireAuth,
   uploadLimiter,
 
-  // Handle multipart form with optional file upload
-  // multer runs first — enforces file size limit and declared MIME type
   (req, res, next) => {
     upload.single('attachment')(req, res, (err) => {
       if (err) {
-        // Multer errors: file too large, wrong type, etc.
         logger.security('UPLOAD_MULTER_ERROR', {
           userId: req.user?.id,
           error: err.message,
@@ -34,35 +37,34 @@ router.post('/feedback',
           user: req.user,
           error: err.message,
           success: null,
+          passwordError: null,
+          passwordSuccess: null,
         });
       }
       next();
     });
   },
 
-  // Hex signature validation — runs after multer saves the file
   validateFileSignature,
 
-  // Input validation for the feedback message
   [
     body('message')
       .trim()
-      // Whitelist: allow letters, numbers, spaces, common punctuation
-      // This strips anything that looks like a script tag or SQL operator
       .matches(/^[a-zA-Z0-9 .,!?'\-\n\r@#()]+$/)
       .withMessage('Message contains invalid characters.')
       .isLength({ min: 1, max: 2000 })
       .withMessage('Message must be between 1 and 2000 characters.')
-      .escape(), // HTML-encode remaining special chars — defence-in-depth against XSS
+      .escape(),
   ],
 
   async (req, res) => {
-    // Check for upload signature rejection from middleware
     if (req.uploadError) {
       return res.status(400).render('feedback', {
         user: req.user,
         error: req.uploadError,
         success: null,
+        passwordError: null,
+        passwordSuccess: null,
       });
     }
 
@@ -72,6 +74,8 @@ router.post('/feedback',
         user: req.user,
         error: errors.array()[0].msg,
         success: null,
+        passwordError: null,
+        passwordSuccess: null,
       });
     }
 
@@ -80,9 +84,8 @@ router.post('/feedback',
         userId: req.user.id,
         message: req.body.message,
         fileUuid: req.fileUuid || null,
-        // Store original filename for display only — NEVER used in file paths
         originalFilename: req.file?.originalname
-          ? req.file.originalname.substring(0, 255)  // truncate to column limit
+          ? req.file.originalname.substring(0, 255)
           : null,
         fileMimeType: req.file?.mimetype || null,
         fileSizeBytes: req.file?.size || null,
@@ -98,6 +101,8 @@ router.post('/feedback',
         user: req.user,
         error: null,
         success: 'Feedback submitted successfully.',
+        passwordError: null,
+        passwordSuccess: null,
       });
 
     } catch (err) {
@@ -106,6 +111,8 @@ router.post('/feedback',
         user: req.user,
         error: 'Could not save feedback. Please try again.',
         success: null,
+        passwordError: null,
+        passwordSuccess: null,
       });
     }
   }

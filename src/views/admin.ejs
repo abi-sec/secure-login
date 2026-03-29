@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — Secure App</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+    nav {
+      background: #1a1a2e;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; }
+    .nav-links { display: flex; align-items: center; gap: 1rem; }
+    .nav-link { color: #a0aec0; text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+    .nav-link:hover { color: white; }
+    .logout-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .logout-btn:hover { background: #dc2626; }
+    .container {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      display: grid;
+      gap: 1.5rem;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .card h2 { font-size: 1.2rem; margin-bottom: 1.2rem; color: #1a1a2e; }
+    .form-group { margin-bottom: 1.2rem; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: #444; }
+    input[type="text"], input[type="password"], input[type="email"], select {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: #4f46e5; }
+    .btn {
+      padding: 0.65rem 1.5rem;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #4338ca; }
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 0.3rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-sm {
+      padding: 0.3rem 0.8rem;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-sm:hover { background: #4338ca; }
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.2rem;
+      font-size: 0.9rem;
+    }
+    .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th {
+      text-align: left;
+      padding: 0.6rem 0.8rem;
+      background: #f8fafc;
+      color: #6b7280;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    td {
+      padding: 0.75rem 0.8rem;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+    .role-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .role-admin { background: #fef3c7; color: #92400e; }
+    .role-user { background: #ede9fe; color: #5b21b6; }
+    .locked-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+    .empty-state { text-align: center; color: #9ca3af; padding: 2rem; font-size: 0.9rem; }
+    .message-cell {
+      max-width: 280px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .section-divider {
+      border: none;
+      border-top: 2px solid #f3f4f6;
+      margin: 1.5rem 0;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-brand">🔐 Secure App — Admin Panel</div>
+    <div class="nav-links">
+      <a href="/feedback" class="nav-link">← Back to App</a>
+      <form method="POST" action="/logout" style="margin:0;">
+        <button type="submit" class="logout-btn">Sign Out</button>
+      </form>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- ── Alerts ── -->
+    <% if (error) { %>
+      <div class="alert alert-error" role="alert"><%= error %></div>
+    <% } %>
+    <% if (success) { %>
+      <div class="alert alert-success" role="alert"><%= success %></div>
+    <% } %>
+
+    <!-- ── Add User ── -->
+    <div class="card">
+      <h2>➕ Add New User</h2>
+      <form method="POST" action="/admin/add-user" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required maxlength="64" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required maxlength="255" autocomplete="off" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required maxlength="128" autocomplete="new-password" />
+          </div>
+          <div class="form-group">
+            <label for="role">Role</label>
+            <select id="role" name="role">
+              <option value="user" selected>User (least privilege)</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn">Create User</button>
+      </form>
+    </div>
+
+    <!-- ── Users Table ── -->
+    <div class="card">
+      <h2>👥 All Users</h2>
+      <% if (users.length === 0) { %>
+        <div class="empty-state">No users found.</div>
+      <% } else { %>
+        <table>
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Failed Logins</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% users.forEach(u => { %>
+              <tr>
+                <td><strong><%= u.username %></strong></td>
+                <td>
+                  <span class="role-badge <%= u.role === 'admin' ? 'role-admin' : 'role-user' %>">
+                    <%= u.role %>
+                  </span>
+                </td>
+                <td><%= u.failedLoginAttempts %></td>
+                <td>
+                  <% if (u.lockedUntil && new Date() < new Date(u.lockedUntil)) { %>
+                    <span class="locked-badge">Locked</span>
+                  <% } else { %>
+                    Active
+                  <% } %>
+                </td>
+                <td><%= new Date(u.createdAt).toLocaleDateString() %></td>
+                <td>
+                  <% if (u.id !== user.id) { %>
+                    <form method="POST" action="/admin/delete-user" style="margin:0;"
+                      onsubmit="return confirm('Delete user <%= u.username %>? This cannot be undone.')">
+                      <input type="hidden" name="userId" value="<%= u.id %>" />
+                      <button type="submit" class="btn-danger">Delete</button>
+                    </form>
+                  <% } else { %>
+                    <span style="color:#9ca3af; font-size:0.8rem;">You</span>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <!-- ── Feedback Table ── -->
+    <div class="card">
+      <h2>📝 All Feedback</h2>
+      <% if (feedbacks.length === 0) { %>
+        <div class="empty-state">No feedback submitted yet.</div>
+      <% } else { %>
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Message</th>
+              <th>Attachment</th>
+              <th>Size</th>
+              <th>Submitted</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% feedbacks.forEach(f => { %>
+              <tr>
+                <td><strong><%= f.User ? f.User.username : 'Deleted User' %></strong></td>
+                <td class="message-cell" title="<%= f.message %>"><%= f.message %></td>
+                <td>
+                  <% if (f.fileUuid) { %>
+                    <a href="/admin/download/<%= f.fileUuid %>" class="btn-sm">
+                      ⬇ <%= f.originalFilename || 'Download' %>
+                    </a>
+                    <br/>
+                    <span style="font-size:0.75rem; color:#6b7280;"><%= f.fileMimeType %></span>
+                  <% } else { %>
+                    <span style="color:#9ca3af; font-size:0.85rem;">None</span>
+                  <% } %>
+                </td>
+                <td>
+                  <% if (f.fileSizeBytes) { %>
+                    <%= (f.fileSizeBytes / 1024).toFixed(1) %> KB
+                  <% } else { %>
+                    —
+                  <% } %>
+                </td>
+                <td><%= new Date(f.createdAt).toLocaleDateString() %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -132,4 +132,8 @@ User.prototype.getEmail = function () {
   }
 };
 
+User.associate = (models) => {
+  User.hasMany(models.Feedback, { foreignKey: 'userId' });
+};
+
 module.exports = User;

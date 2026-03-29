@@ -10,7 +10,7 @@ const logger = require('../utils/logger');
  */
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+  max: 500,
   standardHeaders: true,   // Return rate limit info in RateLimit-* headers
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Only count failed requests
@@ -34,7 +34,7 @@ const loginLimiter = rateLimit({
  */
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
 
@@ -54,7 +54,7 @@ const registerLimiter = rateLimit({
  */
 const uploadLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 10,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
 
@@ -73,7 +73,7 @@ const uploadLimiter = rateLimit({
  */
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 2000,
   standardHeaders: true,
   legacyHeaders: false,
 });
