@@ -1,7 +1,7 @@
 {
   "name": "secure-app",
   "version": "1.0.0",
-  "description": "CS 6417 Secure Software Design Project - Winter 2026",
+  "description": "Secure Software Design Project",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",

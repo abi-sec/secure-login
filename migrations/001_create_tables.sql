@@ -1,7 +1,5 @@
--- ============================================================
+
 -- Migration 001: Initial Schema
--- CS 6417 Secure Software Design Project
--- ============================================================
 
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
