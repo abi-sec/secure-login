@@ -6,17 +6,14 @@ const crypto = require('crypto');
 const { sequelize } = require('../config/database');
 const logger = require('../utils/logger');
 
-// ─── Encryption helpers (AES-256-GCM) ───────────────────────────────────────
-// AES-256-GCM is authenticated encryption — it guarantees both
-// confidentiality AND integrity. If the ciphertext is tampered with,
-// decryption will throw, which is exactly what we want.
+//Encryption helpers (AES-256-GCM)
 
 const ALGORITHM = 'aes-256-gcm';
 const KEY = Buffer.from(process.env.ENCRYPTION_KEY, 'hex'); // 32 bytes
 
 function encrypt(plaintext) {
   if (!plaintext) return null;
-  const iv = crypto.randomBytes(12); // 96-bit IV — recommended for GCM
+  const iv = crypto.randomBytes(12); // 96-bit IV cuz recommended for GCM
   const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
   const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
   const authTag = cipher.getAuthTag(); // GCM authentication tag (16 bytes)
@@ -35,7 +32,7 @@ function decrypt(stored) {
   return decipher.update(encrypted) + decipher.final('utf8');
 }
 
-// ─── Model ───────────────────────────────────────────────────────────────────
+//Model
 
 const User = sequelize.define('User', {
   id: {
@@ -49,21 +46,20 @@ const User = sequelize.define('User', {
     allowNull: false,
     unique: true,
     validate: {
-      // Whitelist: only alphanumeric + underscore
+      // Whitelist for alphanumeric + underscore
       is: /^[a-zA-Z0-9_]+$/,
       len: [3, 64],
     },
   },
 
   // Email is stored encrypted at rest (AES-256-GCM)
-  // If the DB is leaked, email addresses remain unreadable
   emailEncrypted: {
     type: DataTypes.TEXT,
     allowNull: true,
     field: 'email_encrypted',
   },
 
-  // Argon2 hash — never store plaintext or bcrypt here
+  // Argon2 hash
   passwordHash: {
     type: DataTypes.TEXT,
     allowNull: false,
@@ -76,7 +72,7 @@ const User = sequelize.define('User', {
     allowNull: false,
   },
 
-  // Track failed login attempts for account lockout
+  //Track failed login attempts for account lockout
   failedLoginAttempts: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
@@ -94,17 +90,14 @@ const User = sequelize.define('User', {
   underscored: true,
 });
 
-// ─── Instance methods ─────────────────────────────────────────────────────────
+// Instance methods for password hashing, verification, account lockout, and email encryption
 
-/**
- * Hash a password using Argon2id.
- * Argon2id is memory-hard — significantly more resistant to
- * GPU-based cracking than bcrypt or SHA-256.
- */
+//Argon2id with strong parameters to resist GPU cracking and side-channel attacks
+
 User.hashPassword = async function (plaintext) {
   return argon2.hash(plaintext, {
     type: argon2.argon2id,
-    memoryCost: 65536,  // 64 MB — makes GPU attacks expensive
+    memoryCost: 65536,  // 64 MB as it makes GPU attacks expensive
     timeCost: 3,        // 3 iterations
     parallelism: 4,
   });
@@ -126,7 +119,7 @@ User.prototype.getEmail = function () {
   try {
     return decrypt(this.emailEncrypted);
   } catch {
-    // Decryption failure = tampered ciphertext — log and return null
+    // Decryption failure = tampered ciphertext to log and return null
     logger.security('EMAIL_DECRYPT_FAILURE', { userId: this.id });
     return null;
   }

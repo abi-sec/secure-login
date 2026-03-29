@@ -5,12 +5,11 @@ const { combine, timestamp, json, errors } = format;
 
 /**
  * Structured audit logger.
- * All security events are written as JSON — easy to pipe into
+ * All security events are written as JSON so its easy to pipe into
  * SIEM tools or grep for specific event types.
  *
  * IMPORTANT: This logger must NEVER log plaintext passwords,
- * session tokens, or raw PII. Callers are responsible for
- * sanitizing data before passing it here.
+ * session tokens, or raw PII. So make sure to sanitize data before passing it here.
  */
 const logger = createLogger({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -21,9 +20,9 @@ const logger = createLogger({
   ),
   defaultMeta: { service: 'loginapp' },
   transports: [
-    // All logs → combined.log
+    // All logs -> combined.log
     new transports.File({ filename: 'logs/combined.log' }),
-    // Error and above → error.log
+    // Error and above -> error.log
     new transports.File({ filename: 'logs/error.log', level: 'error' }),
   ],
 });
@@ -39,7 +38,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 /**
- * Log a security-relevant event.
+ * Log a security-relevant event
  *
  * @param {string} event   - Machine-readable event type (e.g. 'LOGIN_FAILURE')
  * @param {object} meta    - Contextual data. Never include passwords or tokens.

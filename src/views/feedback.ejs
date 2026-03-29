@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Feedback — Secure App</title>
+  <title>Feedback</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -115,6 +115,17 @@
         Signed in as <span><%= user.username %></span>
         &nbsp;<span class="role-badge"><%= user.role %></span>
       </div>
+      <% if (user.role === 'admin') { %>
+        <a href="/admin" style="
+          background: #7c3aed;
+          color: white;
+          padding: 0.4rem 1rem;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          text-decoration: none;
+        ">Admin Panel</a>
+      <% } %>
       <form method="POST" action="/logout" style="margin:0;">
         <button type="submit" class="logout-btn">Sign Out</button>
       </form>
@@ -123,7 +134,7 @@
 
   <div class="container">
 
-    <!-- ── Feedback Form ── -->
+    <!--  Feedback Form -->
     <div class="card">
       <h2>📝 Submit Feedback</h2>
 
@@ -159,56 +170,6 @@
           />
           <p class="file-info">
             Allowed: JPEG, PNG, PDF, TXT · Max size: <%= process.env.MAX_FILE_SIZE_MB || 5 %>MB<br/>
-            Files are scanned and renamed server-side. Original filename is not used in storage.
+            
           </p>
           <p class="file-info file-error" id="fileSizeError" style="display:none;">
-            File exceeds size limit and will be rejected.
-          </p>
-        </div>
-
-        <button type="submit" class="btn">Submit Feedback</button>
-      </form>
-    </div>
-
-    <!-- ── Change Password ── -->
-    <div class="card">
-      <details <%= (passwordError || passwordSuccess) ? 'open' : '' %>>
-        <summary>🔑 Change Password</summary>
-
-        <% if (passwordError) { %>
-          <div class="alert alert-error" role="alert"><%= passwordError %></div>
-        <% } %>
-        <% if (passwordSuccess) { %>
-          <div class="alert alert-success" role="alert"><%= passwordSuccess %></div>
-        <% } %>
-
-        <form method="POST" action="/change-password" autocomplete="off" novalidate>
-
-          <div class="form-group">
-            <label for="currentPassword">Current Password</label>
-            <input type="password" id="currentPassword" name="currentPassword" required maxlength="128" autocomplete="current-password" />
-          </div>
-
-          <div class="form-group">
-            <label for="newPassword">New Password</label>
-            <input type="password" id="newPassword" name="password" required maxlength="128" autocomplete="new-password" />
-            <div class="strength-meter"><div class="strength-bar" id="strengthBar"></div></div>
-            <p class="strength-label" id="strengthLabel">Enter new password</p>
-          </div>
-
-          <div class="form-group">
-            <label for="confirmPassword">Confirm New Password</label>
-            <input type="password" id="confirmPassword" name="confirmPassword" required maxlength="128" autocomplete="new-password" />
-          </div>
-
-          <button type="submit" class="btn btn-secondary">Update Password</button>
-        </form>
-      </details>
-    </div>
-
-  </div>
-
-  <script src="/zxcvbn.js"></script>
-  <script src="/main.js"></script>
-</body>
-</html>

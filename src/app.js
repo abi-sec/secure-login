@@ -22,33 +22,32 @@ const logger = require('./utils/logger');
 const { connectDB, sequelize } = require('./config/database');
 const { generalLimiter } = require('./middleware/rateLimiter');
 
-// ─── Model associations ───────────────────────────────────────────────────────
+//Model associations
 const User = require('./models/User');
 const Feedback = require('./models/Feedback');
 User.hasMany(Feedback, { foreignKey: 'userId' });
 Feedback.belongsTo(User, { foreignKey: 'userId' });
 
-// ─── Ensure required directories exist ───────────────────────────────────────
+//Ensure required directories exist
 const uploadDir = process.env.UPLOAD_DIR || 'uploads';
 const logsDir = 'logs';
 [uploadDir, logsDir].forEach(dir => {
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── Trust proxy ──────────────────────────────────────────────────────────────
+//Trust proxy
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
-// ─── View engine ─────────────────────────────────────────────────────────────
+//View engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// ─── Helmet — secure HTTP headers ────────────────────────────────────────────
+//Helmet — secure HTTP headers
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -70,14 +69,14 @@ app.use(helmet({
     : false,
 }));
 
-// ─── General rate limiter ─────────────────────────────────────────────────────
+//General rate limiter
 app.use(generalLimiter);
 
-// ─── Body parsers ─────────────────────────────────────────────────────────────
+//Body parsers
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 app.use(express.json({ limit: '10kb' }));
 
-// ─── Session ──────────────────────────────────────────────────────────────────
+//Session
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -91,30 +90,29 @@ app.use(session({
   },
 }));
 
-// ─── Passport ─────────────────────────────────────────────────────────────────
+//Passport
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ─── Static files ─────────────────────────────────────────────────────────────
+//Static files
 app.use(express.static(path.join(__dirname, '../public')));
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
+//Routes
 app.use('/', require('./routes/auth'));
 app.use('/', require('./routes/feedback'));
 app.use('/', require('./routes/admin'));
 
-// Root redirect
+//Root redirect
 app.get('/', (req, res) => {
   res.redirect(req.isAuthenticated() ? '/feedback' : '/login');
 });
 
-// ─── 404 ──────────────────────────────────────────────────────────────────────
+//404
 app.use((req, res) => {
   res.status(404).render('error', { message: 'Page not found.', status: 404 });
 });
 
-// ─── Global error handler ─────────────────────────────────────────────────────
-// eslint-disable-next-line no-unused-vars
+//Global error handler
 app.use((err, req, res, next) => {
   logger.error({ event: 'UNHANDLED_ERROR', error: err.message, stack: err.stack });
   const message = process.env.NODE_ENV === 'production'
@@ -123,7 +121,7 @@ app.use((err, req, res, next) => {
   res.status(500).render('error', { message, status: 500 });
 });
 
-// ─── Startup ──────────────────────────────────────────────────────────────────
+//Startup
 (async () => {
   await connectDB();
   await sequelize.authenticate();

@@ -10,7 +10,7 @@ const { upload, validateFileSignature } = require('../middleware/fileValidator')
 
 const router = express.Router();
 
-// ─── GET /feedback ────────────────────────────────────────────────────────────
+//GET /feedback
 router.get('/feedback', requireAuth, (req, res) => {
   res.render('feedback', {
     user: req.user,
@@ -21,7 +21,7 @@ router.get('/feedback', requireAuth, (req, res) => {
   });
 });
 
-// ─── POST /feedback ───────────────────────────────────────────────────────────
+//POST /feedback
 router.post('/feedback',
   requireAuth,
   uploadLimiter,

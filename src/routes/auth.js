@@ -24,13 +24,13 @@ const PASSWORD_VALIDATORS = [
     .withMessage('Password must contain at least one special character.'),
 ];
 
-// ─── GET /login ───────────────────────────────────────────────────────────────
+//GET /login
 router.get('/login', (req, res) => {
   if (req.isAuthenticated()) return res.redirect('/feedback');
   res.render('login', { error: req.flash?.('error')?.[0] || null, username: '' });
 });
 
-// ─── POST /login ──────────────────────────────────────────────────────────────
+//POST /login
 router.post('/login',
   loginLimiter,
   [
@@ -57,20 +57,19 @@ router.post('/login',
     failureRedirect: '/login',
     failureFlash: false,
   }),
-  // eslint-disable-next-line no-unused-vars
   (err, req, res, _next) => {
     logger.error({ event: 'LOGIN_MIDDLEWARE_ERROR', error: err.message });
     res.status(500).render('login', { error: 'An error occurred. Please try again.', username: '' });
   }
 );
 
-// ─── GET /register ────────────────────────────────────────────────────────────
+//GET /register
 router.get('/register', (req, res) => {
   if (req.isAuthenticated()) return res.redirect('/feedback');
   res.render('register', { errors: [], formData: {} });
 });
 
-// ─── POST /register ───────────────────────────────────────────────────────────
+//POST /register
 router.post('/register',
   registerLimiter,
   [
@@ -125,7 +124,7 @@ router.post('/register',
   }
 );
 
-// ─── POST /change-password ────────────────────────────────────────────────────
+//POST /change-password
 router.post('/change-password',
   requireAuth,
   [
@@ -187,7 +186,7 @@ router.post('/change-password',
   }
 );
 
-// ─── POST /logout ─────────────────────────────────────────────────────────────
+//POST /logout
 router.post('/logout', requireAuth, (req, res, next) => {
   const userId = req.user?.id;
   req.logout((err) => {

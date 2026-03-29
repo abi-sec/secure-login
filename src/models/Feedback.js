@@ -17,14 +17,14 @@ const Feedback = sequelize.define('Feedback', {
     references: { model: 'users', key: 'id' },
   },
 
-  // Sanitized feedback text — express-validator strips dangerous chars upstream
+  // Sanitized feedback text  (express-validator strips dangerous chars upstream)
   message: {
     type: DataTypes.TEXT,
     allowNull: false,
     validate: { len: [1, 2000] },
   },
 
-  // File upload metadata — we store UUID filename, not the original name
+  // File upload metadata
   // Original filename is stored separately for display only (never used in paths)
   fileUuid: {
     type: DataTypes.UUID,
@@ -32,8 +32,8 @@ const Feedback = sequelize.define('Feedback', {
     field: 'file_uuid',
   },
 
-  // Original filename for display — this is untrusted user input,
-  // stored only for UI display, NEVER used in filesystem operations
+  //Original filename for display
+  // stored only for UI display
   originalFilename: {
     type: DataTypes.STRING(255),
     allowNull: true,

@@ -3,15 +3,11 @@
 const rateLimit = require('express-rate-limit');
 const logger = require('../utils/logger');
 
-/**
- * Login rate limiter.
- * Blocks brute-force and credential stuffing attacks.
- * 5 attempts per 15 minutes per IP.
- */
+// Login rate limiter
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 500,
-  standardHeaders: true,   // Return rate limit info in RateLimit-* headers
+  standardHeaders: true,   // Return rate limit info in RateLimit headers
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Only count failed requests
 
@@ -27,13 +23,9 @@ const loginLimiter = rateLimit({
   },
 });
 
-/**
- * Registration rate limiter.
- * Prevents account enumeration at scale and mass account creation.
- * 3 registrations per hour per IP.
- */
+// Registration rate limiter
 const registerLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: 60 * 60 * 1000,
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
@@ -47,11 +39,7 @@ const registerLimiter = rateLimit({
   },
 });
 
-/**
- * File upload rate limiter.
- * Prevents disk exhaustion DoS via repeated file uploads.
- * 10 uploads per 10 minutes per IP.
- */
+// Upload rate limiter
 const uploadLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: 100,
@@ -68,9 +56,7 @@ const uploadLimiter = rateLimit({
   },
 });
 
-/**
- * General API limiter — catch-all for all other routes.
- */
+// General rate limiter for all other routes
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 2000,

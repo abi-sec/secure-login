@@ -12,7 +12,7 @@ const fs = require('fs');
 
 const router = express.Router();
 
-// ─── Helper: fetch all users and feedback for re-render ──────────────────────
+//Helper: fetch all users and feedback for re-render
 async function getAdminData() {
   const users = await User.findAll({
     attributes: ['id', 'username', 'role', 'failedLoginAttempts', 'lockedUntil', 'createdAt'],
@@ -25,7 +25,7 @@ async function getAdminData() {
   return { users, feedbacks };
 }
 
-// ─── GET /admin ───────────────────────────────────────────────────────────────
+//GET /admin
 router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const { users, feedbacks } = await getAdminData();
@@ -36,7 +36,7 @@ router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
   }
 });
 
-// ─── POST /admin/add-user ─────────────────────────────────────────────────────
+//POST /admin/add-user
 router.post('/admin/add-user',
   requireAuth,
   requireRole('admin'),
@@ -99,7 +99,7 @@ router.post('/admin/add-user',
   }
 );
 
-// ─── POST /admin/delete-user ──────────────────────────────────────────────────
+//POST /admin/delete-user
 router.post('/admin/delete-user',
   requireAuth,
   requireRole('admin'),
@@ -139,8 +139,8 @@ router.post('/admin/delete-user',
   }
 );
 
-// ─── GET /admin/download/:uuid ────────────────────────────────────────────────
-// Admin can download uploaded files — UUID lookup prevents path traversal
+//GET /admin/download/:uuid
+//Admin can download uploaded files — UUID lookup prevents path traversal
 router.get('/admin/download/:uuid',
   requireAuth,
   requireRole('admin'),
@@ -148,13 +148,13 @@ router.get('/admin/download/:uuid',
     try {
       const { uuid } = req.params;
 
-      // Validate UUID format before touching filesystem
+      //Validate UUID format before touching filesystem
       const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       if (!UUID_REGEX.test(uuid)) {
         return res.status(400).render('error', { message: 'Invalid file identifier.', status: 400 });
       }
 
-      // Look up in DB to confirm this UUID exists and get original filename
+      //Look up in DB to confirm this UUID exists and get original filename
       const feedback = await Feedback.findOne({ where: { fileUuid: uuid } });
       if (!feedback) {
         return res.status(404).render('error', { message: 'File not found.', status: 404 });
