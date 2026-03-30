@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moderator Panel — Secure App</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+    nav {
+      background: #1a1a2e;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; }
+    .nav-links { display: flex; align-items: center; gap: 1rem; }
+    .nav-link { color: #a0aec0; text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+    .nav-link:hover { color: white; }
+    .logout-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .logout-btn:hover { background: #dc2626; }
+    .container {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      display: grid;
+      gap: 1.5rem;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .card h2 { font-size: 1.2rem; margin-bottom: 1.2rem; color: #1a1a2e; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th {
+      text-align: left;
+      padding: 0.6rem 0.8rem;
+      background: #f8fafc;
+      color: #6b7280;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    td {
+      padding: 0.75rem 0.8rem;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+    .message-cell {
+      max-width: 320px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btn-sm {
+      padding: 0.3rem 0.8rem;
+      background: #0891b2;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-sm:hover { background: #0e7490; }
+    .empty-state { text-align: center; color: #9ca3af; padding: 2rem; font-size: 0.9rem; }
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.2rem;
+      font-size: 0.9rem;
+    }
+    .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-brand">🔐 Secure App — Moderator Panel</div>
+    <div class="nav-links">
+      <a href="/feedback" class="nav-link">← Back to App</a>
+      <form method="POST" action="/logout" style="margin:0;">
+        <button type="submit" class="logout-btn">Sign Out</button>
+      </form>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="card">
+      <h2>📝 All User Feedback</h2>
+
+      <% if (error) { %>
+        <div class="alert alert-error" role="alert"><%= error %></div>
+      <% } %>
+
+      <% if (feedbacks.length === 0) { %>
+        <div class="empty-state">No feedback submitted yet.</div>
+      <% } else { %>
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Message</th>
+              <th>Attachment</th>
+              <th>Size</th>
+              <th>Submitted</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% feedbacks.forEach(f => { %>
+              <tr>
+                <td><strong><%= f.User ? f.User.username : 'Deleted User' %></strong></td>
+                <td class="message-cell" title="<%= f.message %>"><%= f.message %></td>
+                <td>
+                  <% if (f.fileUuid) { %>
+                    <a href="/moderator/download/<%= f.fileUuid %>" class="btn-sm">
+                      ⬇ <%= f.originalFilename || 'Download' %>
+                    </a>
+                    <br/>
+                    <span style="font-size:0.75rem; color:#6b7280; margin-top:0.25rem; display:block;">
+                      <%= f.fileMimeType %>
+                    </span>
+                  <% } else { %>
+                    <span style="color:#9ca3af; font-size:0.85rem;">None</span>
+                  <% } %>
+                </td>
+                <td>
+                  <% if (f.fileSizeBytes) { %>
+                    <%= (f.fileSizeBytes / 1024).toFixed(1) %> KB
+                  <% } else { %>
+                    —
+                  <% } %>
+                </td>
+                <td><%= new Date(f.createdAt).toLocaleDateString() %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -3,40 +3,32 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const Feedback = require('../models/Feedback');
 const logger = require('../utils/logger');
 const { requireAuth, requireRole } = require('../middleware/rbac');
 const { registerLimiter } = require('../middleware/rateLimiter');
-const path = require('path');
-const fs = require('fs');
 
 const router = express.Router();
 
-//Helper: fetch all users and feedback for re-render
-async function getAdminData() {
-  const users = await User.findAll({
+// ─── Helper ───────────────────────────────────────────────────────────────────
+async function getUsers() {
+  return User.findAll({
     attributes: ['id', 'username', 'role', 'failedLoginAttempts', 'lockedUntil', 'createdAt'],
     order: [['createdAt', 'DESC']],
   });
-  const feedbacks = await Feedback.findAll({
-    include: [{ model: User, attributes: ['username'] }],
-    order: [['createdAt', 'DESC']],
-  });
-  return { users, feedbacks };
 }
 
-//GET /admin
+// ─── GET /admin ───────────────────────────────────────────────────────────────
 router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
   try {
-    const { users, feedbacks } = await getAdminData();
-    res.render('admin', { user: req.user, users, feedbacks, error: null, success: null });
+    const users = await getUsers();
+    res.render('admin', { user: req.user, users, error: null, success: null });
   } catch (err) {
     logger.error({ event: 'ADMIN_LOAD_ERROR', error: err.message });
     res.status(500).render('error', { message: 'Could not load admin panel.', status: 500 });
   }
 });
 
-//POST /admin/add-user
+// ─── POST /admin/add-user ─────────────────────────────────────────────────────
 router.post('/admin/add-user',
   requireAuth,
   requireRole('admin'),
@@ -57,12 +49,12 @@ router.post('/admin/add-user',
       .matches(/[0-9]/).withMessage('Password must contain at least one number.')
       .matches(/[^A-Za-z0-9]/).withMessage('Password must contain at least one special character.'),
     body('role')
-      .isIn(['user', 'admin']).withMessage('Invalid role.'),
+      .isIn(['user', 'admin', 'moderator']).withMessage('Invalid role.'),
   ],
   async (req, res) => {
     const rerender = async (error) => {
-      const { users, feedbacks } = await getAdminData();
-      return res.status(400).render('admin', { user: req.user, users, feedbacks, error, success: null });
+      const users = await getUsers();
+      return res.status(400).render('admin', { user: req.user, users, error, success: null });
     };
 
     const errors = validationResult(req);
@@ -85,9 +77,9 @@ router.post('/admin/add-user',
         role,
       });
 
-      const { users, feedbacks } = await getAdminData();
+      const users = await getUsers();
       res.render('admin', {
-        user: req.user, users, feedbacks,
+        user: req.user, users,
         error: null,
         success: `User "${username}" created successfully with role "${role}".`,
       });
@@ -99,14 +91,14 @@ router.post('/admin/add-user',
   }
 );
 
-//POST /admin/delete-user
+// ─── POST /admin/delete-user ──────────────────────────────────────────────────
 router.post('/admin/delete-user',
   requireAuth,
   requireRole('admin'),
   async (req, res) => {
     const rerender = async (error) => {
-      const { users, feedbacks } = await getAdminData();
-      return res.status(400).render('admin', { user: req.user, users, feedbacks, error, success: null });
+      const users = await getUsers();
+      return res.status(400).render('admin', { user: req.user, users, error, success: null });
     };
 
     try {
@@ -125,9 +117,9 @@ router.post('/admin/delete-user',
         deletedUsername: target.username,
       });
 
-      const { users, feedbacks } = await getAdminData();
+      const users = await getUsers();
       res.render('admin', {
-        user: req.user, users, feedbacks,
+        user: req.user, users,
         error: null,
         success: `User "${target.username}" deleted successfully.`,
       });
@@ -135,49 +127,6 @@ router.post('/admin/delete-user',
     } catch (err) {
       logger.error({ event: 'ADMIN_DELETE_USER_ERROR', error: err.message });
       return rerender('Failed to delete user. Please try again.');
-    }
-  }
-);
-
-//GET /admin/download/:uuid
-//Admin can download uploaded files — UUID lookup prevents path traversal
-router.get('/admin/download/:uuid',
-  requireAuth,
-  requireRole('admin'),
-  async (req, res) => {
-    try {
-      const { uuid } = req.params;
-
-      //Validate UUID format before touching filesystem
-      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!UUID_REGEX.test(uuid)) {
-        return res.status(400).render('error', { message: 'Invalid file identifier.', status: 400 });
-      }
-
-      //Look up in DB to confirm this UUID exists and get original filename
-      const feedback = await Feedback.findOne({ where: { fileUuid: uuid } });
-      if (!feedback) {
-        return res.status(404).render('error', { message: 'File not found.', status: 404 });
-      }
-
-      const uploadDir = process.env.UPLOAD_DIR || 'uploads';
-      const filePath = path.join(process.cwd(), uploadDir, uuid);
-
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).render('error', { message: 'File not found on disk.', status: 404 });
-      }
-
-      logger.security('ADMIN_FILE_DOWNLOAD', {
-        adminId: req.user.id,
-        fileUuid: uuid,
-        feedbackId: feedback.id,
-      });
-
-      res.download(filePath, feedback.originalFilename || uuid);
-
-    } catch (err) {
-      logger.error({ event: 'ADMIN_DOWNLOAD_ERROR', error: err.message });
-      res.status(500).render('error', { message: 'Could not download file.', status: 500 });
     }
   }
 );

@@ -36,7 +36,7 @@
     }
     .logout-btn:hover { background: #dc2626; }
     .container {
-      max-width: 960px;
+      max-width: 900px;
       margin: 2rem auto;
       padding: 0 1rem;
       display: grid;
@@ -85,19 +85,6 @@
       cursor: pointer;
     }
     .btn-danger:hover { background: #dc2626; }
-    .btn-sm {
-      padding: 0.3rem 0.8rem;
-      background: #4f46e5;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-    }
-    .btn-sm:hover { background: #4338ca; }
     .alert {
       padding: 0.75rem 1rem;
       border-radius: 8px;
@@ -135,6 +122,7 @@
       letter-spacing: 0.05em;
     }
     .role-admin { background: #fef3c7; color: #92400e; }
+    .role-moderator { background: #e0f2fe; color: #0369a1; }
     .role-user { background: #ede9fe; color: #5b21b6; }
     .locked-badge {
       display: inline-block;
@@ -146,26 +134,6 @@
       color: #991b1b;
     }
     .empty-state { text-align: center; color: #9ca3af; padding: 2rem; font-size: 0.9rem; }
-    .message-cell {
-      max-width: 280px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .file-badge {
-      display: inline-block;
-      padding: 0.2rem 0.5rem;
-      background: #eff6ff;
-      color: #1d4ed8;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    .section-divider {
-      border: none;
-      border-top: 2px solid #f3f4f6;
-      margin: 1.5rem 0;
-    }
   </style>
 </head>
 <body>
@@ -182,7 +150,6 @@
 
   <div class="container">
 
-    <!-- ── Alerts ── -->
     <% if (error) { %>
       <div class="alert alert-error" role="alert"><%= error %></div>
     <% } %>
@@ -213,7 +180,8 @@
             <label for="role">Role</label>
             <select id="role" name="role">
               <option value="user" selected>User (least privilege)</option>
-              <option value="admin">Admin</option>
+              <option value="moderator">Moderator (view feedback only)</option>
+              <option value="admin">Admin (full access)</option>
             </select>
           </div>
         </div>
@@ -243,7 +211,7 @@
               <tr>
                 <td><strong><%= u.username %></strong></td>
                 <td>
-                  <span class="role-badge <%= u.role === 'admin' ? 'role-admin' : 'role-user' %>">
+                  <span class="role-badge role-<%= u.role %>">
                     <%= u.role %>
                   </span>
                 </td>
@@ -267,53 +235,6 @@
                     <span style="color:#9ca3af; font-size:0.8rem;">You</span>
                   <% } %>
                 </td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      <% } %>
-    </div>
-
-    <!-- ── Feedback Table ── -->
-    <div class="card">
-      <h2>📝 All Feedback</h2>
-      <% if (feedbacks.length === 0) { %>
-        <div class="empty-state">No feedback submitted yet.</div>
-      <% } else { %>
-        <table>
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Message</th>
-              <th>Attachment</th>
-              <th>Size</th>
-              <th>Submitted</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% feedbacks.forEach(f => { %>
-              <tr>
-                <td><strong><%= f.User ? f.User.username : 'Deleted User' %></strong></td>
-                <td class="message-cell" title="<%= f.message %>"><%= f.message %></td>
-                <td>
-                  <% if (f.fileUuid) { %>
-                    <a href="/admin/download/<%= f.fileUuid %>" class="btn-sm">
-                      ⬇ <%= f.originalFilename || 'Download' %>
-                    </a>
-                    <br/>
-                    <span style="font-size:0.75rem; color:#6b7280;"><%= f.fileMimeType %></span>
-                  <% } else { %>
-                    <span style="color:#9ca3af; font-size:0.85rem;">None</span>
-                  <% } %>
-                </td>
-                <td>
-                  <% if (f.fileSizeBytes) { %>
-                    <%= (f.fileSizeBytes / 1024).toFixed(1) %> KB
-                  <% } else { %>
-                    —
-                  <% } %>
-                </td>
-                <td><%= new Date(f.createdAt).toLocaleDateString() %></td>
               </tr>
             <% }) %>
           </tbody>

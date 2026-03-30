@@ -3,14 +3,17 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Feedback = require('../models/Feedback');
+const User = require('../models/User');
 const logger = require('../utils/logger');
-const { requireAuth } = require('../middleware/rbac');
+const { requireAuth, requireRole } = require('../middleware/rbac');
 const { uploadLimiter } = require('../middleware/rateLimiter');
 const { upload, validateFileSignature } = require('../middleware/fileValidator');
+const path = require('path');
+const fs = require('fs');
 
 const router = express.Router();
 
-//GET /feedback
+// ─── GET /feedback ────────────────────────────────────────────────────────────
 router.get('/feedback', requireAuth, (req, res) => {
   res.render('feedback', {
     user: req.user,
@@ -21,7 +24,7 @@ router.get('/feedback', requireAuth, (req, res) => {
   });
 });
 
-//POST /feedback
+// ─── POST /feedback ───────────────────────────────────────────────────────────
 router.post('/feedback',
   requireAuth,
   uploadLimiter,
@@ -114,6 +117,60 @@ router.post('/feedback',
         passwordError: null,
         passwordSuccess: null,
       });
+    }
+  }
+);
+
+// ─── GET /moderator ───────────────────────────────────────────────────────────
+router.get('/moderator', requireAuth, requireRole('moderator', 'admin'), async (req, res) => {
+  try {
+    const feedbacks = await Feedback.findAll({
+      include: [{ model: User, attributes: ['username'] }],
+      order: [['createdAt', 'DESC']],
+    });
+    res.render('moderator', { user: req.user, feedbacks, error: null });
+  } catch (err) {
+    logger.error({ event: 'MODERATOR_LOAD_ERROR', error: err.message });
+    res.status(500).render('error', { message: 'Could not load feedback.', status: 500 });
+  }
+});
+
+// ─── GET /moderator/download/:uuid ────────────────────────────────────────────
+router.get('/moderator/download/:uuid',
+  requireAuth,
+  requireRole('moderator', 'admin'),
+  async (req, res) => {
+    try {
+      const { uuid } = req.params;
+
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!UUID_REGEX.test(uuid)) {
+        return res.status(400).render('error', { message: 'Invalid file identifier.', status: 400 });
+      }
+
+      const feedback = await Feedback.findOne({ where: { fileUuid: uuid } });
+      if (!feedback) {
+        return res.status(404).render('error', { message: 'File not found.', status: 404 });
+      }
+
+      const uploadDir = process.env.UPLOAD_DIR || 'uploads';
+      const filePath = path.join(process.cwd(), uploadDir, uuid);
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).render('error', { message: 'File not found on disk.', status: 404 });
+      }
+
+      logger.security('MODERATOR_FILE_DOWNLOAD', {
+        moderatorId: req.user.id,
+        fileUuid: uuid,
+        feedbackId: feedback.id,
+      });
+
+      res.download(filePath, feedback.originalFilename || uuid);
+
+    } catch (err) {
+      logger.error({ event: 'MODERATOR_DOWNLOAD_ERROR', error: err.message });
+      res.status(500).render('error', { message: 'Could not download file.', status: 500 });
     }
   }
 );
