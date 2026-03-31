@@ -24,13 +24,13 @@ const PASSWORD_VALIDATORS = [
     .withMessage('Password must contain at least one special character.'),
 ];
 
-//GET /login
+// ─── GET /login ───────────────────────────────────────────────────────────────
 router.get('/login', (req, res) => {
-  if (req.isAuthenticated()) return res.redirect('/feedback');
-  res.render('login', { error: req.flash?.('error')?.[0] || null, username: '' });
+  if (req.isAuthenticated()) return res.redirect('/home');
+  res.render('login', { error: null, username: '' });
 });
 
-//POST /login
+// ─── POST /login ──────────────────────────────────────────────────────────────
 router.post('/login',
   loginLimiter,
   [
@@ -52,24 +52,37 @@ router.post('/login',
     }
     next();
   },
-  passport.authenticate('local', {
-    successRedirect: '/feedback',
-    failureRedirect: '/login',
-    failureFlash: false,
-  }),
+  (req, res, next) => {
+    passport.authenticate('local', (err, user, info) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.status(401).render('login', {
+          error: info?.message || 'Invalid credentials.',
+          username: req.body.username || '',
+        });
+      }
+      req.logIn(user, (err) => {
+        if (err) return next(err);
+        if (user.role === 'admin') return res.redirect('/admin');
+        if (user.role === 'moderator') return res.redirect('/moderator');
+        return res.redirect('/home');
+      });
+    })(req, res, next);
+  },
+  // eslint-disable-next-line no-unused-vars
   (err, req, res, _next) => {
     logger.error({ event: 'LOGIN_MIDDLEWARE_ERROR', error: err.message });
     res.status(500).render('login', { error: 'An error occurred. Please try again.', username: '' });
   }
 );
 
-//GET /register
+// ─── GET /register ────────────────────────────────────────────────────────────
 router.get('/register', (req, res) => {
-  if (req.isAuthenticated()) return res.redirect('/feedback');
+  if (req.isAuthenticated()) return res.redirect('/home');
   res.render('register', { errors: [], formData: {} });
 });
 
-//POST /register
+// ─── POST /register ───────────────────────────────────────────────────────────
 router.post('/register',
   registerLimiter,
   [
@@ -124,7 +137,16 @@ router.post('/register',
   }
 );
 
-//POST /change-password
+// ─── GET /account ─────────────────────────────────────────────────────────────
+router.get('/account', requireAuth, (req, res) => {
+  res.render('account', {
+    user: req.user,
+    passwordError: null,
+    passwordSuccess: null,
+  });
+});
+
+// ─── POST /change-password ────────────────────────────────────────────────────
 router.post('/change-password',
   requireAuth,
   [
@@ -137,10 +159,8 @@ router.post('/change-password',
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).render('feedback', {
+      return res.status(400).render('account', {
         user: req.user,
-        error: null,
-        success: null,
         passwordError: errors.array()[0].msg,
         passwordSuccess: null,
       });
@@ -152,10 +172,8 @@ router.post('/change-password',
 
       if (!valid) {
         logger.security('PASSWORD_CHANGE_WRONG_CURRENT', { userId: req.user.id });
-        return res.status(400).render('feedback', {
+        return res.status(400).render('account', {
           user: req.user,
-          error: null,
-          success: null,
           passwordError: 'Current password is incorrect.',
           passwordSuccess: null,
         });
@@ -165,20 +183,16 @@ router.post('/change-password',
       await user.save();
 
       logger.security('PASSWORD_CHANGED', { userId: req.user.id });
-      res.render('feedback', {
+      res.render('account', {
         user: req.user,
-        error: null,
-        success: null,
         passwordError: null,
         passwordSuccess: 'Password changed successfully.',
       });
 
     } catch (err) {
       logger.error({ event: 'PASSWORD_CHANGE_ERROR', error: err.message });
-      res.status(500).render('feedback', {
+      res.status(500).render('account', {
         user: req.user,
-        error: null,
-        success: null,
         passwordError: 'An error occurred. Please try again.',
         passwordSuccess: null,
       });
@@ -186,7 +200,7 @@ router.post('/change-password',
   }
 );
 
-//POST /logout
+// ─── POST /logout ─────────────────────────────────────────────────────────────
 router.post('/logout', requireAuth, (req, res, next) => {
   const userId = req.user?.id;
   req.logout((err) => {

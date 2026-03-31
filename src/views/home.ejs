@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Listings — RentSecure</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+    nav {
+      background: #1a1a2e;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; }
+    .nav-links { display: flex; align-items: center; gap: 1rem; }
+    .nav-link { color: #a0aec0; text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+    .nav-link:hover { color: white; }
+    .nav-btn {
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-purple { background: #7c3aed; color: white; }
+    .btn-cyan { background: #0891b2; color: white; }
+    .btn-green { background: #16a34a; color: white; }
+    .logout-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .logout-btn:hover { background: #dc2626; }
+    .role-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: <%= user.role === 'admin' ? '#fef3c7' : user.role === 'moderator' ? '#e0f2fe' : '#ede9fe' %>;
+      color: <%= user.role === 'admin' ? '#92400e' : user.role === 'moderator' ? '#0369a1' : '#5b21b6' %>;
+    }
+    .nav-user { font-size: 0.85rem; color: #a0aec0; }
+    .nav-user span { color: #7c3aed; font-weight: 600; }
+    .container {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .page-header h1 { font-size: 1.4rem; color: #1a1a2e; }
+    .listings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+    .listing-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .listing-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+    .carousel {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      overflow: hidden;
+      background: #e5e7eb;
+    }
+    .carousel-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.3s ease;
+    }
+    .carousel-track img {
+      min-width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+      flex-shrink: 0;
+    }
+    .carousel-placeholder {
+      min-width: 100%;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      color: #9ca3af;
+      background: #e5e7eb;
+      flex-shrink: 0;
+    }
+    .carousel-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.45);
+      color: white;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      transition: background 0.2s;
+    }
+    .carousel-btn:hover { background: rgba(0,0,0,0.7); }
+    .carousel-btn.prev { left: 8px; }
+    .carousel-btn.next { right: 8px; }
+    .carousel-dots {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 4px;
+    }
+    .carousel-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.5);
+      cursor: pointer;
+      border: none;
+      padding: 0;
+      transition: background 0.2s;
+    }
+    .carousel-dot.active { background: white; }
+    .listing-body { padding: 1.2rem; }
+    .listing-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; color: #1a1a2e; }
+    .listing-address { font-size: 0.82rem; color: #6b7280; margin-bottom: 0.6rem; }
+    .listing-price { font-size: 1.1rem; font-weight: 700; color: #4f46e5; margin-bottom: 0.5rem; }
+    .listing-desc {
+      font-size: 0.82rem;
+      color: #6b7280;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .listing-footer {
+      padding: 0.75rem 1.2rem;
+      border-top: 1px solid #f3f4f6;
+      font-size: 0.78rem;
+      color: #9ca3af;
+      display: flex;
+      justify-content: space-between;
+    }
+    .empty-state { text-align: center; padding: 4rem 2rem; color: #9ca3af; }
+    .empty-state p { font-size: 1rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-brand">🏠 RentSecure</div>
+    <div class="nav-links">
+      <div class="nav-user">
+        <a href="/account" style="color:#a0aec0; text-decoration:none;">
+          <span><%= user.username %></span>
+        </a>
+        &nbsp;<span class="role-badge"><%= user.role %></span>
+      </div>
+      <a href="/listings/new" class="nav-btn btn-green">+ Add Listing</a>
+      <% if (user.role === 'admin') { %>
+        <a href="/admin" class="nav-btn btn-purple">Admin Panel</a>
+      <% } %>
+      <% if (user.role === 'moderator') { %>
+        <a href="/moderator" class="nav-btn btn-cyan">Moderator Panel</a>
+      <% } %>
+      <form method="POST" action="/logout" style="margin:0;">
+        <button type="submit" class="logout-btn">Sign Out</button>
+      </form>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>🏘 Available Listings</h1>
+      <span style="font-size:0.85rem; color:#6b7280;">
+        <%= listings.length %> listing<%= listings.length !== 1 ? 's' : '' %> available
+      </span>
+    </div>
+
+    <% if (listings.length === 0) { %>
+      <div class="empty-state">
+        <p>No listings available yet.</p>
+        <a href="/listings/new" class="nav-btn btn-green">Be the first to add one</a>
+      </div>
+    <% } else { %>
+      <div class="listings-grid">
+        <% listings.forEach((listing, listingIndex) => { %>
+          <% const imgs = listing.imageUuids ? listing.imageUuids.split(',').filter(Boolean) : []; %>
+          <div class="listing-card">
+
+            <div class="carousel">
+              <div class="carousel-track" id="track-<%= listingIndex %>">
+                <% if (imgs.length > 0) { %>
+                  <% imgs.forEach(uuid => { %>
+                    <img
+                      src="/listings/image/<%= uuid %>"
+                      alt="<%= listing.title %>"
+                      onerror="this.style.display='none';"
+                    />
+                  <% }) %>
+                <% } else { %>
+                  <div class="carousel-placeholder">🏠</div>
+                <% } %>
+              </div>
+
+              <% if (imgs.length > 1) { %>
+                <button
+                  class="carousel-btn prev"
+                  data-carousel-prev="<%= listingIndex %>"
+                >&#8249;</button>
+                <button
+                  class="carousel-btn next"
+                  data-carousel-next="<%= listingIndex %>"
+                >&#8250;</button>
+                <div class="carousel-dots" id="dots-<%= listingIndex %>">
+                  <% imgs.forEach((_, i) => { %>
+                    <button
+                      class="carousel-dot <%= i === 0 ? 'active' : '' %>"
+                      data-carousel-dot="<%= i %>"
+                      data-carousel-index="<%= listingIndex %>"
+                    ></button>
+                  <% }) %>
+                </div>
+              <% } %>
+            </div>
+
+            <div class="listing-body">
+              <div class="listing-title"><%= listing.title %></div>
+              <div class="listing-address">📍 <%= listing.address %></div>
+              <div class="listing-price">$<%= parseFloat(listing.price).toLocaleString() %>/mo</div>
+              <% if (listing.description) { %>
+                <div class="listing-desc"><%= listing.description %></div>
+              <% } %>
+            </div>
+            <div class="listing-footer">
+              <span>Posted by <%= listing.User ? listing.User.username : 'Unknown' %></span>
+              <span><%= new Date(listing.createdAt).toLocaleDateString() %></span>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+
+  <script src="/main.js"></script>
+</body>
+</html>

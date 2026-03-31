@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Moderator Panel — Secure App</title>
+  <title>Moderator Panel — RentSecure</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -49,59 +49,84 @@
       box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     }
     .card h2 { font-size: 1.2rem; margin-bottom: 1.2rem; color: #1a1a2e; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-    th {
-      text-align: left;
-      padding: 0.6rem 0.8rem;
-      background: #f8fafc;
+    .listing-row {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 1.2rem;
+      margin-bottom: 1rem;
+      display: grid;
+      grid-template-columns: 120px 1fr auto;
+      gap: 1rem;
+      align-items: start;
+    }
+    .listing-row:last-child { margin-bottom: 0; }
+    .listing-thumb {
+      width: 120px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #e5e7eb;
+      display: block;
+    }
+    .listing-thumb-placeholder {
+      width: 120px;
+      height: 90px;
+      background: #e5e7eb;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: #9ca3af;
+    }
+    .listing-info h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .listing-info .address { font-size: 0.82rem; color: #6b7280; margin-bottom: 0.25rem; }
+    .listing-info .price { font-size: 0.95rem; font-weight: 700; color: #4f46e5; margin-bottom: 0.25rem; }
+    .listing-info .desc {
+      font-size: 0.82rem;
       color: #6b7280;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    td {
-      padding: 0.75rem 0.8rem;
-      border-bottom: 1px solid #f3f4f6;
-      vertical-align: middle;
-    }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #fafafa; }
-    .message-cell {
-      max-width: 320px;
-      white-space: nowrap;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow: hidden;
-      text-overflow: ellipsis;
     }
-    .btn-sm {
-      padding: 0.3rem 0.8rem;
-      background: #0891b2;
+    .listing-info .meta { font-size: 0.78rem; color: #9ca3af; margin-top: 0.4rem; }
+    .listing-actions { display: flex; flex-direction: column; gap: 0.5rem; min-width: 90px; }
+    .btn-approve {
+      background: #16a34a;
       color: white;
       border: none;
+      padding: 0.4rem 0.8rem;
       border-radius: 6px;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
+      width: 100%;
     }
-    .btn-sm:hover { background: #0e7490; }
+    .btn-approve:hover { background: #15803d; }
+    .btn-reject {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+    .btn-reject:hover { background: #dc2626; }
     .empty-state { text-align: center; color: #9ca3af; padding: 2rem; font-size: 0.9rem; }
-    .alert {
-      padding: 0.75rem 1rem;
-      border-radius: 8px;
-      margin-bottom: 1.2rem;
-      font-size: 0.9rem;
-    }
-    .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .image-count { font-size: 0.75rem; color: #6b7280; margin-top: 0.3rem; }
   </style>
 </head>
 <body>
 
   <nav>
-    <div class="nav-brand">🔐 Secure App — Moderator Panel</div>
+    <div class="nav-brand">🏠 RentSecure — Moderator</div>
     <div class="nav-links">
-      <a href="/feedback" class="nav-link">← Back to App</a>
+      <a href="/home" class="nav-link">← Back to Listings</a>
       <form method="POST" action="/logout" style="margin:0;">
         <button type="submit" class="logout-btn">Sign Out</button>
       </form>
@@ -110,55 +135,57 @@
 
   <div class="container">
     <div class="card">
-      <h2>📝 All User Feedback</h2>
+      <h2>🕐 Pending Listings</h2>
 
-      <% if (error) { %>
-        <div class="alert alert-error" role="alert"><%= error %></div>
-      <% } %>
-
-      <% if (feedbacks.length === 0) { %>
-        <div class="empty-state">No feedback submitted yet.</div>
+      <% if (listings.length === 0) { %>
+        <div class="empty-state">No pending listings. All caught up!</div>
       <% } else { %>
-        <table>
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Message</th>
-              <th>Attachment</th>
-              <th>Size</th>
-              <th>Submitted</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% feedbacks.forEach(f => { %>
-              <tr>
-                <td><strong><%= f.User ? f.User.username : 'Deleted User' %></strong></td>
-                <td class="message-cell" title="<%= f.message %>"><%= f.message %></td>
-                <td>
-                  <% if (f.fileUuid) { %>
-                    <a href="/moderator/download/<%= f.fileUuid %>" class="btn-sm">
-                      ⬇ <%= f.originalFilename || 'Download' %>
-                    </a>
-                    <br/>
-                    <span style="font-size:0.75rem; color:#6b7280; margin-top:0.25rem; display:block;">
-                      <%= f.fileMimeType %>
-                    </span>
-                  <% } else { %>
-                    <span style="color:#9ca3af; font-size:0.85rem;">None</span>
-                  <% } %>
-                </td>
-                <td>
-                  <% if (f.fileSizeBytes) { %>
-                    <%= (f.fileSizeBytes / 1024).toFixed(1) %> KB
-                  <% } else { %>
-                    —
-                  <% } %>
-                </td>
-                <td><%= new Date(f.createdAt).toLocaleDateString() %></td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
+        <% listings.forEach(listing => { %>
+          <% const imgs = listing.imageUuids ? listing.imageUuids.split(',').filter(Boolean) : []; %>
+          <div class="listing-row">
+
+            <!-- Thumbnail -->
+            <% if (imgs.length > 0) { %>
+              <img
+                class="listing-thumb"
+                src="/listings/image/<%= imgs[0] %>"
+                alt="<%= listing.title %>"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+              />
+              <div class="listing-thumb-placeholder" style="display:none;">🏠</div>
+            <% } else { %>
+              <div class="listing-thumb-placeholder">🏠</div>
+            <% } %>
+
+            <!-- Info -->
+            <div class="listing-info">
+              <h3><%= listing.title %></h3>
+              <div class="address">📍 <%= listing.address %></div>
+              <div class="price">$<%= parseFloat(listing.price).toLocaleString() %>/mo</div>
+              <% if (listing.description) { %>
+                <div class="desc"><%= listing.description %></div>
+              <% } %>
+              <div class="meta">
+                By <strong><%= listing.User ? listing.User.username : 'Unknown' %></strong>
+                · <%= new Date(listing.createdAt).toLocaleDateString() %>
+                <% if (imgs.length > 0) { %>
+                  · <%= imgs.length %> image<%= imgs.length !== 1 ? 's' : '' %>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="listing-actions">
+              <form method="POST" action="/listings/<%= listing.id %>/approve">
+                <button type="submit" class="btn-approve">✓ Approve</button>
+              </form>
+              <form method="POST" action="/listings/<%= listing.id %>/reject">
+                <button type="submit" class="btn-reject">✕ Reject</button>
+              </form>
+            </div>
+
+          </div>
+        <% }) %>
       <% } %>
     </div>
   </div>

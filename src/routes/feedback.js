@@ -4,6 +4,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Feedback = require('../models/Feedback');
 const User = require('../models/User');
+const Listing = require('../models/Listing');
 const logger = require('../utils/logger');
 const { requireAuth, requireRole } = require('../middleware/rbac');
 const { uploadLimiter } = require('../middleware/rateLimiter');
@@ -13,7 +14,7 @@ const fs = require('fs');
 
 const router = express.Router();
 
-//GET /feedback
+// ─── GET /feedback ────────────────────────────────────────────────────────────
 router.get('/feedback', requireAuth, (req, res) => {
   res.render('feedback', {
     user: req.user,
@@ -24,7 +25,7 @@ router.get('/feedback', requireAuth, (req, res) => {
   });
 });
 
-//POST /feedback 
+// ─── POST /feedback ───────────────────────────────────────────────────────────
 router.post('/feedback',
   requireAuth,
   uploadLimiter,
@@ -121,21 +122,22 @@ router.post('/feedback',
   }
 );
 
-// GET /moderator 
+// ─── GET /moderator ───────────────────────────────────────────────────────────
 router.get('/moderator', requireAuth, requireRole('moderator', 'admin'), async (req, res) => {
   try {
-    const feedbacks = await Feedback.findAll({
+    const listings = await Listing.findAll({
+      where: { status: 'pending' },
       include: [{ model: User, attributes: ['username'] }],
-      order: [['createdAt', 'DESC']],
+      order: [['createdAt', 'ASC']],
     });
-    res.render('moderator', { user: req.user, feedbacks, error: null });
+    res.render('moderator', { user: req.user, listings, error: null });
   } catch (err) {
     logger.error({ event: 'MODERATOR_LOAD_ERROR', error: err.message });
-    res.status(500).render('error', { message: 'Could not load feedback.', status: 500 });
+    res.status(500).render('error', { message: 'Could not load moderator panel.', status: 500 });
   }
 });
 
-//GET /moderator/download/:uuid
+// ─── GET /moderator/download/:uuid ────────────────────────────────────────────
 router.get('/moderator/download/:uuid',
   requireAuth,
   requireRole('moderator', 'admin'),
@@ -156,7 +158,6 @@ router.get('/moderator/download/:uuid',
       const uploadDir = process.env.UPLOAD_DIR || 'uploads';
       const uploadPath = path.join(process.cwd(), uploadDir);
 
-      // File is stored as uuid.ext
       const files = fs.readdirSync(uploadPath);
       const match = files.find(f => f.startsWith(uuid));
 

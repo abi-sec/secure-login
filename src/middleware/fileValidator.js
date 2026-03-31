@@ -5,7 +5,6 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
 
-// Only images allowed
 const ALLOWED_TYPES = {
   'image/jpeg': { ext: '.jpg' },
   'image/png':  { ext: '.png' },
@@ -15,6 +14,7 @@ const ALLOWED_TYPES = {
 
 const MAX_SIZE_BYTES = (parseInt(process.env.MAX_FILE_SIZE_MB, 10) || 5) * 1024 * 1024;
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
+const MAX_FILES = 5;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -35,11 +35,12 @@ const multerFilter = (req, file, cb) => {
       declaredMime: file.mimetype,
       originalName: file.originalname,
     });
-    cb(new Error(`File type not allowed. Only JPEG, PNG, GIF and WEBP images are accepted.`), false);
+    cb(new Error('File type not allowed. Only JPEG, PNG, GIF and WEBP images are accepted.'), false);
   }
 };
 
-const upload = multer({
+// Single file upload (kept for any future single-upload use)
+const uploadSingle = multer({
   storage,
   limits: {
     fileSize: MAX_SIZE_BYTES,
@@ -50,51 +51,60 @@ const upload = multer({
   fileFilter: multerFilter,
 });
 
+// Multiple images upload (max 5 for listings)
+const uploadMultiple = multer({
+  storage,
+  limits: {
+    fileSize: MAX_SIZE_BYTES,
+    files: MAX_FILES,
+    fields: 20,
+    headerPairs: 2000,
+  },
+  fileFilter: multerFilter,
+});
+
+// Validate hex signature for a single file
+async function validateSingleFile(file) {
+  const fs = require('fs');
+  const { fileTypeFromFile } = await import('file-type');
+  const detected = await fileTypeFromFile(file.path);
+  const declaredMime = file.mimetype;
+
+  if (!detected) {
+    throw new Error('Could not determine file type from binary signature');
+  }
+  if (detected.mime !== declaredMime) {
+    throw new Error(`Signature mismatch: declared=${declaredMime}, actual=${detected.mime}`);
+  }
+
+  const ext = ALLOWED_TYPES[declaredMime]?.ext || '.bin';
+  const finalPath = file.path.replace('.tmp', ext);
+  fs.renameSync(file.path, finalPath);
+
+  const fileUuid = path.basename(file.filename, '.tmp');
+  return { fileUuid, finalPath };
+}
+
+// Middleware: validate single file signature (feedback route)
 async function validateFileSignature(req, res, next) {
   if (!req.file) return next();
-
   const fs = require('fs');
 
   try {
-    const { fileTypeFromFile } = await import('file-type');
-    const detected = await fileTypeFromFile(req.file.path);
-
-    const declaredMime = req.file.mimetype;
-
-    // All allowed types (images) have magic bytes so undefined is always invalid
-    if (!detected) {
-      throw new Error('Could not determine file type from binary signature');
-    }
-
-    if (detected.mime !== declaredMime) {
-      throw new Error(
-        `Signature mismatch: declared=${declaredMime}, actual=${detected.mime}`
-      );
-    }
-
-    const ext = ALLOWED_TYPES[declaredMime]?.ext || '.bin';
-    const finalPath = req.file.path.replace('.tmp', ext);
-    fs.renameSync(req.file.path, finalPath);
-
-    const fileUuid = path.basename(req.file.filename, '.tmp');
+    const { fileUuid, finalPath } = await validateSingleFile(req.file);
     req.fileUuid = fileUuid;
     req.fileFinalPath = finalPath;
 
     logger.security('UPLOAD_ACCEPTED', {
       userId: req.user?.id,
       fileUuid,
-      mime: declaredMime,
+      mime: req.file.mimetype,
       sizeBytes: req.file.size,
     });
 
     next();
-
   } catch (err) {
-    try {
-      require('fs').unlinkSync(req.file.path);
-    } catch {
-      // intentionally ignored
-    }
+    try { require('fs').unlinkSync(req.file.path); } catch { /* ignored */ }
 
     logger.security('UPLOAD_REJECTED_SIGNATURE', {
       userId: req.user?.id,
@@ -108,4 +118,61 @@ async function validateFileSignature(req, res, next) {
   }
 }
 
-module.exports = { upload, validateFileSignature, ALLOWED_TYPES };
+// Middleware: validate multiple file signatures (listings route)
+async function validateMultipleFileSignatures(req, res, next) {
+  if (!req.files || req.files.length === 0) return next();
+  const fs = require('fs');
+
+  const validatedUuids = [];
+  const errors = [];
+
+  for (const file of req.files) {
+    try {
+      const { fileUuid } = await validateSingleFile(file);
+      validatedUuids.push(fileUuid);
+
+      logger.security('UPLOAD_ACCEPTED', {
+        userId: req.user?.id,
+        fileUuid,
+        mime: file.mimetype,
+        sizeBytes: file.size,
+      });
+    } catch (err) {
+      try { fs.unlinkSync(file.path); } catch { /* ignored */ }
+
+      logger.security('UPLOAD_REJECTED_SIGNATURE', {
+        userId: req.user?.id,
+        reason: err.message,
+        declaredMime: file.mimetype,
+        originalName: file.originalname,
+      });
+
+      errors.push(file.originalname);
+    }
+  }
+
+  if (errors.length > 0) {
+    // Clean up all validated files too since we reject the whole submission
+    for (const uuid of validatedUuids) {
+      const uploadPath = require('path').join(process.cwd(), UPLOAD_DIR);
+      const allFiles = fs.readdirSync(uploadPath);
+      const match = allFiles.find(f => f.startsWith(uuid));
+      if (match) {
+        try { fs.unlinkSync(require('path').join(uploadPath, match)); } catch { /* ignored */ }
+      }
+    }
+    req.uploadError = `Some files were rejected. Only JPEG, PNG, GIF and WEBP images are accepted.`;
+    return next();
+  }
+
+  req.fileUuids = validatedUuids;
+  next();
+}
+
+module.exports = {
+  upload: uploadSingle,
+  uploadMultiple,
+  validateFileSignature,
+  validateMultipleFileSignatures,
+  ALLOWED_TYPES,
+};
