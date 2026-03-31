@@ -6,7 +6,8 @@ on:
   pull_request:
     branches: [main, develop]
   push:
-    branches: [main]
+    branches: [main, v2]
+workflow_dispatch: 
 
 jobs:
   
@@ -207,7 +208,7 @@ jobs:
 
   
   # SUMMARY — All gates passed
-  
+
   security-summary:
     name: "All Security Gates Passed"
     runs-on: ubuntu-latest

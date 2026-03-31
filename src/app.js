@@ -143,7 +143,7 @@ app.use((err, req, res, next) => {
 
   app.listen(PORT, () => {
     logger.info({ event: 'APP_STARTED', port: PORT, env: process.env.NODE_ENV });
-    console.log(`✅ Server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 })();
 
