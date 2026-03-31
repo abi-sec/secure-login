@@ -59,7 +59,7 @@ router.post('/listings/new',
       .isLength({ min: 3, max: 128 }).withMessage('Title must be 3–128 characters.'),
     body('address')
       .trim()
-      .matches(/^[a-zA-Z0-9 .,#'\-]+$/).withMessage('Address contains invalid characters.')
+      .matches(/^[a-zA-Z0-9 .,#'-]+$/).withMessage('Address contains invalid characters.')
       .isLength({ min: 5, max: 255 }).withMessage('Address must be 5–255 characters.'),
     body('price')
       .isFloat({ min: 0 }).withMessage('Price must be a positive number.'),

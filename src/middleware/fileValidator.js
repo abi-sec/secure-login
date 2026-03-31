@@ -88,7 +88,6 @@ async function validateSingleFile(file) {
 // Middleware: validate single file signature (feedback route)
 async function validateFileSignature(req, res, next) {
   if (!req.file) return next();
-  const fs = require('fs');
 
   try {
     const { fileUuid, finalPath } = await validateSingleFile(req.file);

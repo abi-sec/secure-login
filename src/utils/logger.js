@@ -55,7 +55,7 @@ logger.security = function (event, meta = {}) {
   logger.info({ event, ...safe });
 
   // Write to database audit log asynchronously
-  setImmediate(async () => {
+  setTimeout(async () => {
     try {
       const AuditLog = require('../models/AuditLog');
       await AuditLog.create({
