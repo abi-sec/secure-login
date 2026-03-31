@@ -9,7 +9,7 @@ const { registerLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
+//Helper
 async function getUsers() {
   return User.findAll({
     attributes: ['id', 'username', 'role', 'failedLoginAttempts', 'lockedUntil', 'createdAt'],
@@ -17,7 +17,7 @@ async function getUsers() {
   });
 }
 
-// ─── GET /admin ───────────────────────────────────────────────────────────────
+//GET /admin
 router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const users = await getUsers();
@@ -28,7 +28,7 @@ router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
   }
 });
 
-// ─── POST /admin/add-user ─────────────────────────────────────────────────────
+//POST /admin/add-user
 router.post('/admin/add-user',
   requireAuth,
   requireRole('admin'),
@@ -91,7 +91,58 @@ router.post('/admin/add-user',
   }
 );
 
-// ─── POST /admin/delete-user ──────────────────────────────────────────────────
+// POST /admin/change-role
+router.post('/admin/change-role',
+  requireAuth,
+  requireRole('admin'),
+  [
+    body('role')
+      .isIn(['user', 'admin', 'moderator']).withMessage('Invalid role.'),
+  ],
+  async (req, res) => {
+    const rerender = async (error) => {
+      const users = await getUsers();
+      return res.status(400).render('admin', { user: req.user, users, error, success: null });
+    };
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return rerender(errors.array()[0].msg);
+
+    try {
+      const { userId, role } = req.body;
+
+      if (userId === req.user.id) return rerender('You cannot change your own role.');
+
+      const target = await User.findByPk(userId);
+      if (!target) return rerender('User not found.');
+
+      const oldRole = target.role;
+      target.role = role;
+      await target.save();
+
+      logger.security('ADMIN_ROLE_CHANGED', {
+        adminId: req.user.id,
+        targetUserId: userId,
+        targetUsername: target.username,
+        oldRole,
+        newRole: role,
+      });
+
+      const users = await getUsers();
+      res.render('admin', {
+        user: req.user, users,
+        error: null,
+        success: `Role for "${target.username}" changed from "${oldRole}" to "${role}".`,
+      });
+
+    } catch (err) {
+      logger.error({ event: 'ADMIN_CHANGE_ROLE_ERROR', error: err.message });
+      return rerender('Failed to change role. Please try again.');
+    }
+  }
+);
+
+//POST /admin/delete-user
 router.post('/admin/delete-user',
   requireAuth,
   requireRole('admin'),

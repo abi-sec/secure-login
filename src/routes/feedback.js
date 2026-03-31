@@ -13,7 +13,7 @@ const fs = require('fs');
 
 const router = express.Router();
 
-// ─── GET /feedback ────────────────────────────────────────────────────────────
+//GET /feedback
 router.get('/feedback', requireAuth, (req, res) => {
   res.render('feedback', {
     user: req.user,
@@ -24,7 +24,7 @@ router.get('/feedback', requireAuth, (req, res) => {
   });
 });
 
-// ─── POST /feedback ───────────────────────────────────────────────────────────
+//POST /feedback 
 router.post('/feedback',
   requireAuth,
   uploadLimiter,
@@ -121,7 +121,7 @@ router.post('/feedback',
   }
 );
 
-// ─── GET /moderator ───────────────────────────────────────────────────────────
+// GET /moderator 
 router.get('/moderator', requireAuth, requireRole('moderator', 'admin'), async (req, res) => {
   try {
     const feedbacks = await Feedback.findAll({
@@ -135,7 +135,7 @@ router.get('/moderator', requireAuth, requireRole('moderator', 'admin'), async (
   }
 });
 
-// ─── GET /moderator/download/:uuid ────────────────────────────────────────────
+//GET /moderator/download/:uuid
 router.get('/moderator/download/:uuid',
   requireAuth,
   requireRole('moderator', 'admin'),
@@ -154,11 +154,17 @@ router.get('/moderator/download/:uuid',
       }
 
       const uploadDir = process.env.UPLOAD_DIR || 'uploads';
-      const filePath = path.join(process.cwd(), uploadDir, uuid);
+      const uploadPath = path.join(process.cwd(), uploadDir);
 
-      if (!fs.existsSync(filePath)) {
+      // File is stored as uuid.ext
+      const files = fs.readdirSync(uploadPath);
+      const match = files.find(f => f.startsWith(uuid));
+
+      if (!match) {
         return res.status(404).render('error', { message: 'File not found on disk.', status: 404 });
       }
+
+      const filePath = path.join(uploadPath, match);
 
       logger.security('MODERATOR_FILE_DOWNLOAD', {
         moderatorId: req.user.id,
@@ -166,7 +172,7 @@ router.get('/moderator/download/:uuid',
         feedbackId: feedback.id,
       });
 
-      res.download(filePath, feedback.originalFilename || uuid);
+      res.download(filePath, feedback.originalFilename || match);
 
     } catch (err) {
       logger.error({ event: 'MODERATOR_DOWNLOAD_ERROR', error: err.message });

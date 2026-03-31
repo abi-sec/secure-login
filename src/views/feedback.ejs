@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Feedback</title>
+  <title>Feedback — Secure App</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -93,8 +93,8 @@
       border-radius: 999px;
       font-size: 0.75rem;
       font-weight: 700;
-      background: <%= user.role === 'admin' ? '#fef3c7' : '#ede9fe' %>;
-      color: <%= user.role === 'admin' ? '#92400e' : '#5b21b6' %>;
+      background: <%= user.role === 'admin' ? '#fef3c7' : user.role === 'moderator' ? '#e0f2fe' : '#ede9fe' %>;
+      color: <%= user.role === 'admin' ? '#92400e' : user.role === 'moderator' ? '#0369a1' : '#5b21b6' %>;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -126,6 +126,17 @@
           text-decoration: none;
         ">Admin Panel</a>
       <% } %>
+      <% if (user.role === 'moderator') { %>
+        <a href="/moderator" style="
+          background: #0891b2;
+          color: white;
+          padding: 0.4rem 1rem;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          text-decoration: none;
+        ">Moderator Panel</a>
+      <% } %>
       <form method="POST" action="/logout" style="margin:0;">
         <button type="submit" class="logout-btn">Sign Out</button>
       </form>
@@ -134,7 +145,7 @@
 
   <div class="container">
 
-    <!--  Feedback Form -->
+    <!-- ── Feedback Form ── -->
     <div class="card">
       <h2>📝 Submit Feedback</h2>
 
@@ -165,11 +176,60 @@
             type="file"
             id="attachment"
             name="attachment"
-            accept=".jpg,.jpeg,.png,.pdf,.txt"
+            accept=".jpg,.jpeg,.png,.gif,.webp"
             data-max-mb="<%= process.env.MAX_FILE_SIZE_MB || 5 %>"
           />
           <p class="file-info">
-            Allowed: JPEG, PNG, PDF, TXT · Max size: <%= process.env.MAX_FILE_SIZE_MB || 5 %>MB<br/>
-            
+            Allowed: JPEG,JPG,PNG,GIF,WEBP · Max size: <%= process.env.MAX_FILE_SIZE_MB || 5 %>MB<br/>
           </p>
           <p class="file-info file-error" id="fileSizeError" style="display:none;">
+            File exceeds size limit and will be rejected.
+          </p>
+        </div>
+
+        <button type="submit" class="btn">Submit Feedback</button>
+      </form>
+    </div>
+
+    <!-- ── Change Password ── -->
+    <div class="card">
+      <details <%= (passwordError || passwordSuccess) ? 'open' : '' %>>
+        <summary>🔑 Change Password</summary>
+
+        <% if (passwordError) { %>
+          <div class="alert alert-error" role="alert"><%= passwordError %></div>
+        <% } %>
+        <% if (passwordSuccess) { %>
+          <div class="alert alert-success" role="alert"><%= passwordSuccess %></div>
+        <% } %>
+
+        <form method="POST" action="/change-password" autocomplete="off" novalidate>
+
+          <div class="form-group">
+            <label for="currentPassword">Current Password</label>
+            <input type="password" id="currentPassword" name="currentPassword" required maxlength="128" autocomplete="current-password" />
+          </div>
+
+          <div class="form-group">
+            <label for="newPassword">New Password</label>
+            <input type="password" id="newPassword" name="password" required maxlength="128" autocomplete="new-password" />
+            <div class="strength-meter"><div class="strength-bar" id="strengthBar"></div></div>
+            <p class="strength-label" id="strengthLabel">Enter new password</p>
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">Confirm New Password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" required maxlength="128" autocomplete="new-password" />
+          </div>
+
+          <button type="submit" class="btn btn-secondary">Update Password</button>
+        </form>
+      </details>
+    </div>
+
+  </div>
+
+  <script src="/zxcvbn.js"></script>
+  <script src="/main.js"></script>
+</body>
+</html>
