@@ -1,8 +1,12 @@
-# Secure Login Page
+# Secure Login Page (v3)
 
 A security-focused web application.
 
 **Stack:** Node.js · Express · EJS · PostgreSQL · GitHub Actions
+
+### v3 Enhancements
+- **Restricted Database Access:** Service connections use least privilege `app_user`.
+- **Encrypted Audit Logging:** Security events are persisted directly into an encrypted `audit_log` PostgreSQL table.
 
 ---
 
@@ -41,7 +45,9 @@ Copy-Item .env.example .env
 cp .env.example .env
 ```
 
-Open `.env` and fill in your values. Generate secrets (same command on both platforms):
+Open `.env` and fill in your `DB_PASSWORD` (your root Postgres password). Leave `APP_DB_USER` and `APP_DB_PASSWORD` exactly as they are—the automated migrations will create this restricted user for you later!
+
+Then, generate and fill in the encryption secrets (same command on both platforms):
 
 ```bash
 # SESSION_SECRET (64 random bytes)

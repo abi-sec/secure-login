@@ -53,6 +53,22 @@ logger.security = function (event, meta = {}) {
   delete safe.secret;
 
   logger.info({ event, ...safe });
+
+  // Write to database audit log asynchronously
+  setImmediate(async () => {
+    try {
+      const AuditLog = require('../models/AuditLog');
+      await AuditLog.create({
+        event: event,
+        userId: safe.userId || safe.moderatorId || null,
+        ipAddress: safe.ip || null,
+        details: safe
+      });
+    } catch (err) {
+      // Fallback logging if DB is down or model not fully loaded yet
+      logger.error({ event: 'AUDIT_DB_INSERT_FAILED', error: err.message });
+    }
+  });
 };
 
 module.exports = logger;

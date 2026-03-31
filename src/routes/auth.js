@@ -24,13 +24,11 @@ const PASSWORD_VALIDATORS = [
     .withMessage('Password must contain at least one special character.'),
 ];
 
-// ─── GET /login ───────────────────────────────────────────────────────────────
 router.get('/login', (req, res) => {
   if (req.isAuthenticated()) return res.redirect('/home');
   res.render('login', { error: null, username: '' });
 });
 
-// ─── POST /login ──────────────────────────────────────────────────────────────
 router.post('/login',
   loginLimiter,
   [
@@ -76,13 +74,11 @@ router.post('/login',
   }
 );
 
-// ─── GET /register ────────────────────────────────────────────────────────────
 router.get('/register', (req, res) => {
   if (req.isAuthenticated()) return res.redirect('/home');
   res.render('register', { errors: [], formData: {} });
 });
 
-// ─── POST /register ───────────────────────────────────────────────────────────
 router.post('/register',
   registerLimiter,
   [
@@ -137,7 +133,6 @@ router.post('/register',
   }
 );
 
-// ─── GET /account ─────────────────────────────────────────────────────────────
 router.get('/account', requireAuth, (req, res) => {
   res.render('account', {
     user: req.user,
@@ -146,7 +141,6 @@ router.get('/account', requireAuth, (req, res) => {
   });
 });
 
-// ─── POST /change-password ────────────────────────────────────────────────────
 router.post('/change-password',
   requireAuth,
   [
@@ -200,7 +194,6 @@ router.post('/change-password',
   }
 );
 
-// ─── POST /logout ─────────────────────────────────────────────────────────────
 router.post('/logout', requireAuth, (req, res, next) => {
   const userId = req.user?.id;
   req.logout((err) => {

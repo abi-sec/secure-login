@@ -14,7 +14,6 @@ const fs = require('fs');
 
 const router = express.Router();
 
-// ─── GET /feedback ────────────────────────────────────────────────────────────
 router.get('/feedback', requireAuth, (req, res) => {
   res.render('feedback', {
     user: req.user,
@@ -25,7 +24,6 @@ router.get('/feedback', requireAuth, (req, res) => {
   });
 });
 
-// ─── POST /feedback ───────────────────────────────────────────────────────────
 router.post('/feedback',
   requireAuth,
   uploadLimiter,
@@ -122,7 +120,6 @@ router.post('/feedback',
   }
 );
 
-// ─── GET /moderator ───────────────────────────────────────────────────────────
 router.get('/moderator', requireAuth, requireRole('moderator', 'admin'), async (req, res) => {
   try {
     const listings = await Listing.findAll({
@@ -137,7 +134,6 @@ router.get('/moderator', requireAuth, requireRole('moderator', 'admin'), async (
   }
 });
 
-// ─── GET /moderator/download/:uuid ────────────────────────────────────────────
 router.get('/moderator/download/:uuid',
   requireAuth,
   requireRole('moderator', 'admin'),

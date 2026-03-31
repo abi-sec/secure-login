@@ -12,7 +12,6 @@ const fs = require('fs');
 
 const router = express.Router();
 
-// ─── GET /home ────────────────────────────────────────────────────────────────
 router.get('/home', requireAuth, async (req, res) => {
   try {
     const listings = await Listing.findAll({
@@ -27,12 +26,10 @@ router.get('/home', requireAuth, async (req, res) => {
   }
 });
 
-// ─── GET /listings/new ────────────────────────────────────────────────────────
 router.get('/listings/new', requireAuth, (req, res) => {
   res.render('listing', { user: req.user, error: null, success: null });
 });
 
-// ─── POST /listings/new ───────────────────────────────────────────────────────
 router.post('/listings/new',
   requireAuth,
 
@@ -127,7 +124,6 @@ router.post('/listings/new',
   }
 );
 
-// ─── GET /listings/image/:uuid ────────────────────────────────────────────────
 router.get('/listings/image/:uuid',
   requireAuth,
   async (req, res) => {
@@ -156,7 +152,6 @@ router.get('/listings/image/:uuid',
   }
 );
 
-// ─── POST /listings/:id/approve ───────────────────────────────────────────────
 router.post('/listings/:id/approve',
   requireAuth,
   requireRole('moderator', 'admin'),
@@ -181,7 +176,6 @@ router.post('/listings/:id/approve',
   }
 );
 
-// ─── POST /listings/:id/reject ────────────────────────────────────────────────
 router.post('/listings/:id/reject',
   requireAuth,
   requireRole('moderator', 'admin'),
