@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main, develop]
   push:
-    branches: [main, v2]
+    branches: [main, v2, v3]
   workflow_dispatch: 
 
 jobs:
