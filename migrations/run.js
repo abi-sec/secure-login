@@ -24,7 +24,7 @@ async function runMigrations() {
 
   try {
     await client.connect();
-    console.log('✅ Connected to PostgreSQL');
+    console.log('Connected to PostgreSQL');
 
     const migrationDir = __dirname;
     const sqlFiles = fs
@@ -37,10 +37,10 @@ async function runMigrations() {
       const sql = fs.readFileSync(filePath, 'utf8');
       console.log(`▶  Running migration: ${file}`);
       await client.query(sql);
-      console.log(`   ✅ Done: ${file}`);
+      console.log(`Done: ${file}`);
     }
 
-    console.log('\n✅ All migrations completed successfully.');
+    console.log('\n All migrations completed successfully.');
 
   } catch (err) {
     console.error('❌ Migration failed:', err.message);
