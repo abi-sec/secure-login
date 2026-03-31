@@ -4,8 +4,8 @@
   "description": "Secure App",
   "main": "src/app.js",
   "scripts": {
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
+    "start": "node --no-deprecation src/app.js",
+    "dev": "nodemon --no-deprecation src/app.js",
     "lint": "eslint src/ --ext .js",
     "audit-check": "npm audit --audit-level=high",
     "migrate": "node migrations/run.js"
