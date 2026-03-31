@@ -32,7 +32,9 @@ if (process.env.NODE_ENV !== 'production') {
   logger.add(new transports.Console({
     format: format.combine(
       format.colorize(),
-      format.simple()
+      format.timestamp({ format: 'ISO' }),
+      format.errors({ stack: true }),
+      format.json()
     )
   }));
 }
