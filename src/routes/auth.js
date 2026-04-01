@@ -44,7 +44,7 @@ router.post('/login',
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).render('login', {
-        error: errors.array()[0].msg,
+        error: 'Invalid username or password.',
         username: req.body.username || '',
       });
     }
@@ -55,7 +55,7 @@ router.post('/login',
       if (err) return next(err);
       if (!user) {
         return res.status(401).render('login', {
-          error: info?.message || 'Invalid credentials.',
+          error: info?.message || 'Invalid username or password.',
           username: req.body.username || '',
         });
       }

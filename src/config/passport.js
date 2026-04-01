@@ -21,7 +21,7 @@ passport.use(new LocalStrategy(
       //username enumeration attacks.
       if (!user) {
         logger.security('LOGIN_FAILURE_USER_NOT_FOUND', { username });
-        return done(null, false, { message: 'Invalid credentials.' });
+        return done(null, false, { message: 'Invalid username or password.' });
       }
 
       //Account locked
@@ -56,7 +56,7 @@ passport.use(new LocalStrategy(
         }
 
         await user.save();
-        return done(null, false, { message: 'Invalid credentials.' });
+        return done(null, false, { message: 'Invalid username or password.' });
       }
 
       //Success
